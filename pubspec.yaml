@@ -38,6 +38,8 @@ dependencies:
   intl: ^0.18.1
   badges: ^3.1.2
   confetti: ^0.7.0
+  http: ^1.1.0  # Use the latest version or the one compatible with your Flutter
+
 
 
   # The following adds the Cupertino Icons font to your application.

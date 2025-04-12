@@ -3,15 +3,26 @@ import 'package:flutter/material.dart';
 import '../registration/Code verification.dart';
 
 class ResetPassword extends StatefulWidget {
-  const ResetPassword({super.key});
+  final String? token; // Add token parameter
+  final String? email; // Add email parameter
+
+  const ResetPassword({super.key, this.token, this.email});
 
   @override
   State<ResetPassword> createState() => _ResetPasswordState();
 }
 
 class _ResetPasswordState extends State<ResetPassword> {
-  bool isYesSelected = false;
-  bool isNoSelected = false;
+  TextEditingController _emailController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // If email is provided, use it to pre-fill the email field
+    if (widget.email != null && widget.email!.isNotEmpty) {
+      _emailController.text = widget.email!;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,30 +83,41 @@ class _ResetPasswordState extends State<ResetPassword> {
               ),
               SizedBox(height: screenHeight * 0.01),
               TextFormField(
-                onTap: () {},
+                controller: _emailController,
                 decoration: InputDecoration(
                   fillColor: const Color(0xFFE6E9EA),
+                  filled: true,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Colors.grey,
-                    ),
+                    borderSide: const BorderSide(color: Colors.grey),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: Color(0xFFE6E9EA),
-                    ),
+                    borderSide: const BorderSide(color: Color(0xFFE6E9EA)),
                   ),
                 ),
               ),
               SizedBox(height: screenHeight * 0.04),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.push(
+                  String email = _emailController.text.trim();
+
+                  // Use existing token if provided, otherwise create a placeholder
+                  String tokenToUse = widget.token ?? "123456";
+
+                  if (email.isNotEmpty) {
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => CodeVerifiction()));
+                        builder: (context) =>
+                            CodeVerification(email: email, token: tokenToUse),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("يرجى إدخال البريد الإلكتروني")),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF2C73D9),
