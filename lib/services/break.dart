@@ -89,7 +89,7 @@
 // }
 import 'package:flutter/material.dart';
 
-import '../widget/break.dart';
+import '../session/break.dart';
 
 class AnimatedWaveScreen extends StatefulWidget {
   final Widget nextScreen;
