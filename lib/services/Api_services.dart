@@ -1,6 +1,10 @@
 import 'dart:convert';
-
+import 'dart:io'; // لـ File
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'dart:async'; // لاستخدام TimeoutException
+
+
 
 class ApiService {
   static const String baseUrl = 'http://aspiq.runasp.net/api';
@@ -733,4 +737,495 @@ class ApiService {
       };
     }
   }
+  static Future<Map<String, dynamic>> getUserProfile(String? token) async {
+    final url = Uri.parse('$baseUrl/user/get-profile'); // <-- تأكدي من المسار الصحيح
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token'; // <-- إضافة التوكن يدويًا
+    } else {
+      print("[ApiService.getUserProfile] Error: Token is required.");
+      return {'success': false, 'message': 'Token is required', 'statusCode': 401};
+    }
+
+    try {
+      print("[ApiService.getUserProfile] Sending GET request to $url");
+      final response = await http.get(url, headers: headers);
+      print('[ApiService.getUserProfile] API Status Code: ${response.statusCode}');
+      print('[ApiService.getUserProfile] API Response Body: ${response.body}');
+
+      dynamic responseData;
+      String message = 'Failed to parse response';
+      bool isJson = response.headers['content-type']?.contains('application/json') ?? false;
+
+      try {
+        if (isJson && response.body.isNotEmpty) {
+          responseData = json.decode(response.body);
+          message = "Profile loaded"; // رسالة افتراضية للنجاح
+          if (responseData is Map<String, dynamic>) {
+            // يمكنك البحث عن رسالة نجاح محددة إذا كان API يرسلها
+            // message = responseData['message'] ?? message;
+          }
+        } else if (response.body.isNotEmpty) {
+          responseData = {'rawBody': response.body}; // إذا لم يكن JSON
+          message = response.body;
+        } else {
+          responseData = {}; // جسم فارغ
+          message = "Empty response body";
+        }
+      } catch (e) {
+        print('[ApiService.getUserProfile] JSON Decode Error: $e');
+        message = 'Error parsing server response.';
+        responseData = {'rawErrorBody': response.body};
+      }
+
+      bool success = response.statusCode == 200;
+      if (!success && isJson && responseData is Map<String, dynamic>) {
+        // محاولة استخراج رسالة خطأ من JSON
+        message = responseData['message'] ?? responseData['title'] ?? 'Failed to load profile';
+      } else if (!success && !isJson) {
+        message = response.body.isNotEmpty ? response.body : 'Failed to load profile (Status: ${response.statusCode})';
+      }
+
+
+      return {
+        'success': success,
+        'data': success ? responseData : null, // أعد البيانات فقط عند النجاح
+        'statusCode': response.statusCode,
+        'message': message,
+      };
+    } catch (e) {
+      print('[ApiService.getUserProfile] Network or other error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+        'error': e.toString(),
+        'data': null,
+        'statusCode': null,
+      };
+    }
+  }
+
+  // --- دالة تحديث الملف الشخصي ---
+  static Future<Map<String, dynamic>> updateUserProfile(
+      String? token, Map<String, dynamic> profileData) async {
+    final url = Uri.parse('$baseUrl/user/update-profile'); // <-- تأكدي من المسار الصحيح
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token'; // <-- إضافة التوكن يدويًا
+    } else {
+      print("[ApiService.updateUserProfile] Error: Token is required.");
+      return {'success': false, 'message': 'Token is required', 'statusCode': 401};
+    }
+
+    try {
+      print("[ApiService.updateUserProfile] Sending PUT request to $url");
+      print("[ApiService.updateUserProfile] Data: ${json.encode(profileData)}");
+      // --- استخدام http.put ---
+      final response = await http.put(
+        url,
+        headers: headers,
+        body: json.encode(profileData), // إرسال البيانات المحدثة
+      );
+      // -----------------------
+      print('[ApiService.updateUserProfile] API Status Code: ${response.statusCode}');
+      print('[ApiService.updateUserProfile] API Response Body: ${response.body}');
+
+      dynamic responseData;
+      String message = 'Failed to parse response';
+      bool isJson = response.headers['content-type']?.contains('application/json') ?? false;
+
+      try {
+        if (response.body.isNotEmpty){
+          if (isJson) {
+            responseData = json.decode(response.body);
+            if (responseData is Map<String, dynamic>) {
+              message = responseData['message'] ?? responseData['title'] ?? 'Profile updated';
+            } else {
+              message = responseData.toString();
+            }
+          } else {
+            message = response.body;
+            responseData = {'rawBody': message};
+          }
+        } else {
+          responseData = {};
+          message = "Profile updated successfully"; // افترض النجاح للجسم الفارغ (200/204)
+        }
+      } catch (e) {
+        print('[ApiService.updateUserProfile] JSON Decode Error: $e');
+        message = 'Error parsing server response.';
+        responseData = {'rawErrorBody': response.body};
+      }
+
+      bool success = response.statusCode == 200 || response.statusCode == 204; // 204 يعني نجاح بدون محتوى
+      if (!success && isJson && responseData is Map<String, dynamic>) {
+        message = responseData['message'] ?? responseData['title'] ?? 'Failed to update profile';
+        if (responseData['errors'] != null) message += " Details: ${json.encode(responseData['errors'])}";
+      } else if (!success && !isJson) {
+        message = response.body.isNotEmpty ? response.body : 'Failed to update profile (Status: ${response.statusCode})';
+      }
+
+
+      return {
+        'success': success,
+        'data': responseData, // قد تكون الاستجابة فارغة عند النجاح
+        'statusCode': response.statusCode,
+        'message': message,
+      };
+    } catch (e) {
+      print('[ApiService.updateUserProfile] Network or other error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+        'error': e.toString(),
+        'data': null,
+        'statusCode': null,
+      };
+    }
+  }
+
+  // --- دالة رفع صورة الملف الشخصي ---
+  static Future<Map<String, dynamic>> uploadProfilePicture(String? token, File imageFile) async {
+    final url = Uri.parse('$baseUrl/user/update-profile-picture'); // <-- تأكدي من المسار الصحيح
+    final headers = <String, String>{
+      // لا نضع Content-Type هنا، http package ستضيفه لـ multipart/form-data
+      'Accept': 'application/json', // ماذا نتوقع كاستجابة
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    } else {
+      print("[ApiService.uploadProfilePicture] Error: Token is required.");
+      return {'success': false, 'message': 'Token is required', 'statusCode': 401};
+    }
+
+    try {
+      print("[ApiService.uploadProfilePicture] Sending POST (multipart) request to $url");
+      // --- إنشاء طلب multipart ---
+      var request = http.MultipartRequest('POST', url); // <-- قد يكون PUT حسب الـ API
+      request.headers.addAll(headers);
+
+      // إضافة الملف
+      request.files.add(await http.MultipartFile.fromPath(
+          'ImageFile', // <-- تأكدي من اسم الحقل الذي يتوقعه الـ API
+          imageFile.path,
+          contentType: MediaType('image', imageFile.path.split('.').last) // تحديد نوع الصورة
+      ));
+      // يمكنك إضافة حقول أخرى هنا إذا كان API رفع الصورة يتطلبها
+      // request.fields['userId'] = '123';
+
+      // --- إرسال الطلب ---
+      var streamedResponse = await request.send();
+      // --- قراءة الاستجابة ---
+      var response = await http.Response.fromStream(streamedResponse);
+      // -----------------------
+
+      print('[ApiService.uploadProfilePicture] API Status Code: ${response.statusCode}');
+      print('[ApiService.uploadProfilePicture] API Response Body: ${response.body}');
+
+      dynamic responseData;
+      String message = 'Failed to parse response';
+      String? newImageUrl;
+      bool isJson = response.headers['content-type']?.contains('application/json') ?? false;
+
+
+      try {
+        if (isJson && response.body.isNotEmpty) {
+          responseData = json.decode(response.body);
+          message = "Picture uploaded";
+          if (responseData is Map<String, dynamic>) {
+            message = responseData['message'] ?? message;
+            // --- استخراج رابط الصورة الجديد ---
+            newImageUrl = responseData['imageUrl']; // <-- تأكدي من اسم الحقل الصحيح
+            // --------------------------------
+          }
+        } else if (response.body.isNotEmpty){
+          responseData = {'rawBody': response.body};
+          message = response.body;
+        } else {
+          responseData = {};
+          message = 'Empty response body';
+        }
+      } catch (e) {
+        print('[ApiService.uploadProfilePicture] JSON Decode Error: $e');
+        message = 'Error parsing server response.';
+        responseData = {'rawErrorBody': response.body};
+      }
+
+
+      bool success = response.statusCode == 200 && newImageUrl != null; // النجاح يتطلب رابط صورة جديد
+      if (!success && isJson && responseData is Map<String, dynamic>) {
+        message = responseData['message'] ?? responseData['title'] ?? 'Failed to upload picture';
+      } else if (!success && !isJson) {
+        message = response.body.isNotEmpty ? response.body : 'Failed to upload picture (Status: ${response.statusCode})';
+      }
+
+
+      return {
+        'success': success,
+        'data': responseData,
+        'newImageUrl': newImageUrl, // إرجاع الرابط الجديد
+        'statusCode': response.statusCode,
+        'message': message,
+      };
+
+    } catch (e) {
+      print('[ApiService.uploadProfilePicture] Network or other error: $e');
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+        'error': e.toString(),
+        'data': null,
+        'statusCode': null,
+      };
+    }
+  }
+  // --- دالة تصنيف الإجابة ---
+  // يجب أن تكون هذه الدالة داخل الكلاس ApiService
+  // داخل class ApiService
+
+  // ******** دالة تصنيف الإجابة (معدلة للتعامل مع Map) ********
+  static Future<String?> classifyAnswerWithModel(String rawText) async {
+    const String modelPredictEndpoint = "https://f61c-34-148-145-12.ngrok-free.app/predict";
+    final url = Uri.parse(modelPredictEndpoint);
+    final headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}; // اطلب JSON
+    final body = jsonEncode({'text': rawText});
+    try {
+      print('[ApiService.classifyAnswer] Calling Model API: $modelPredictEndpoint');
+      final response = await http.post(url, headers: headers, body: body)
+          .timeout(const Duration(seconds: 20));
+      print('[ApiService.classifyAnswer] Model API Status: ${response.statusCode}');
+      print('[ApiService.classifyAnswer] Model API Response Headers: ${response.headers}'); // طباعة الهيدر للتشخيص
+      // print('[ApiService.classifyAnswer] Model API Raw Body Bytes: ${response.bodyBytes}'); // للتشخيص المتقدم
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+
+        // --- محاولة فك التشفير باستخدام UTF-8 مباشرة ---
+        String decodedBody;
+        try {
+          // استخدم response.bodyBytes و utf8.decode لمعالجة الترميز يدوياً
+          decodedBody = utf8.decode(response.bodyBytes);
+          print('[ApiService.classifyAnswer] Body decoded with UTF-8: $decodedBody');
+        } catch (e) {
+          print('[ApiService.classifyAnswer] Error decoding body with UTF-8, falling back to response.body: $e');
+          // في حالة فشل فك التشفير اليدوي، استخدم response.body كاحتياط
+          decodedBody = response.body;
+        }
+
+        // --- تحليل الـ JSON بعد فك التشفير الصحيح ---
+        try {
+          final dynamic responseData = jsonDecode(decodedBody);
+
+          if (responseData is Map<String, dynamic>) {
+            print('[ApiService.classifyAnswer] Model Response Body (Map): $responseData');
+
+            // --- !! تأكد أن المفتاح هو 'result' !! ---
+            final dynamic resultValue = responseData['result']; // اقرأ القيمة
+
+            if (resultValue != null) {
+              // حول القيمة إلى نص وقم بتنظيفها
+              final String classificationResult = resultValue.toString().trim().replaceAll('"', '');
+              const validResults = ["نعم", "لا", "بمساعدة"];
+
+              if (validResults.contains(classificationResult)) { // قارن مع النص الصحيح الآن
+                print('[ApiService.classifyAnswer] Model Classified As: $classificationResult');
+                return classificationResult;
+              } else {
+                print('[ApiService.classifyAnswer] Error: Unexpected classification value after UTF-8 decode: "$classificationResult"');
+                return null;
+              }
+            } else {
+              print("[ApiService.classifyAnswer] Error: Key 'result' not found in response Map after UTF-8 decode.");
+              return null;
+            }
+          } else {
+            print('[ApiService.classifyAnswer] Error: Expected a Map response after UTF-8 decode, but got ${responseData.runtimeType}');
+            return null;
+          }
+        } catch (e) {
+          print('[ApiService.classifyAnswer] JSON Decode Error after manual UTF-8 decode: $e');
+          print('[ApiService.classifyAnswer] Decoded Body was: $decodedBody');
+          return null;
+        }
+
+      } else {
+        print('[ApiService.classifyAnswer] Error: Failed with status ${response.statusCode}. Body: ${response.body}');
+        return null;
+      }
+    } on TimeoutException catch (e) { print('[ApiService.classifyAnswer] Error: Request timed out - $e'); return null; }
+    on SocketException catch (e) { print('[ApiService.classifyAnswer] Error: Network error - $e'); return null; }
+    on http.ClientException catch (e) { print('[ApiService.classifyAnswer] Error: Client error - $e'); return null; }
+    catch (e) { print('[ApiService.classifyAnswer] Error: An unexpected error occurred - $e'); return null; }
+  } // نهاية classifyAnswerWithModel
+
+  // --- دالة إرسال إجابة التقييم ---
+  // يجب أن تكون هذه الدالة داخل الكلاس ApiService
+  static Future<bool> submitAssessmentAnswer(int questionId, String classifiedAnswer, String jwtToken) async {
+    final url = Uri.parse('$baseUrl/sessioncontroller/submit-answers'); // استخدام baseUrl معرف أعلاه
+    final headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $jwtToken'};
+    final body = jsonEncode({"Answers": [{"SessionId": questionId, "Answer": classifiedAnswer}]});
+    try {
+      print('[ApiService.submitAnswer] Calling Backend API: ${url.toString()} for Q:$questionId Ans:"$classifiedAnswer"');
+      final response = await http.post(url, headers: headers, body: body)
+          .timeout(const Duration(seconds: 15));
+
+      print('[ApiService.submitAnswer] Backend API Status: ${response.statusCode}');
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        print('[ApiService.submitAnswer] Success: Answer submitted.');
+        return true; // نجح الإرسال
+      } else {
+        print('[ApiService.submitAnswer] Error: Failed with status ${response.statusCode}. Body: ${response.body}');
+        return false; // فشل الإرسال
+      }
+    } on TimeoutException catch (e) {
+      print('[ApiService.submitAnswer] Error: Request timed out - $e');
+      return false;
+    } on SocketException catch (e) {
+      print('[ApiService.submitAnswer] Error: Network error - $e');
+      return false;
+    } on http.ClientException catch (e) {
+      print('[ApiService.submitAnswer] Error: Client error - $e');
+      return false;
+    } catch (e) {
+      print('[ApiService.submitAnswer] Error: An unexpected error occurred - $e');
+      return false;
+    }
+  }
+  // داخل class ApiService
+
+// داخل class ApiService في ملف lib/services/api_service.dart
+
+  // ******** دالة جلب خطة التدريب (الجلسة التالية) ********
+  // تفترض أن الباك اند يرجع قائمة تحتوي على جلسة واحدة فقط (التالية) أو قائمة فارغة
+  static Future<Map<String, dynamic>> getChildSessions(String jwtToken) async {
+    // تأكد من أن هذا هو المسار الصحيح لنقطة النهاية في الباك اند
+    final url = Uri.parse('$baseUrl/sessioncontroller/get-child-sessions');
+    final headers = {
+      'Content-Type': 'application/json', // قد لا يكون ضرورياً لـ GET لكنه ممارسة جيدة
+      'Authorization': 'Bearer $jwtToken',
+      'Accept': 'application/json', // نطلب استجابة JSON
+    };
+
+    try {
+      print('[ApiService.getChildSessions] Calling GET: ${url.toString()}');
+      // استخدام http.get وإضافة مهلة
+      final response = await http.get(url, headers: headers)
+          .timeout(const Duration(seconds: 20)); // زيادة المهلة قليلاً
+
+      print('[ApiService.getChildSessions] Status Code: ${response.statusCode}');
+      // طباعة الجسم الخام للمساعدة في التشخيص إذا لزم الأمر
+      // print('[ApiService.getChildSessions] Raw Response Body: ${response.body}');
+
+      // --- التعامل مع الاستجابات المختلفة ---
+
+      // 1. النجاح (200 OK)
+      if (response.statusCode == 200) {
+        String decodedBody;
+        // محاولة فك التشفير بـ UTF-8 لمعالجة مشاكل الترميز المحتملة
+        try {
+          decodedBody = utf8.decode(response.bodyBytes);
+          print('[ApiService.getChildSessions] Body decoded with UTF-8.');
+        } catch(e){
+          print('[ApiService.getChildSessions] UTF8 decode failed, using raw response.body.');
+          decodedBody = response.body;
+        }
+
+        // محاولة تحليل الـ JSON
+        try {
+          final dynamic responseData = jsonDecode(decodedBody);
+
+          // التحقق من التنسيق المتوقع (كائن يحتوي على $values كقائمة)
+          if (responseData is Map<String, dynamic> && responseData.containsKey('\$values') && responseData['\$values'] is List) {
+            final List<dynamic> sessionsList = responseData['\$values'];
+            print('[ApiService.getChildSessions] Success: Found ${sessionsList.length} session(s).');
+
+            // إرجاع القائمة (قد تحتوي على جلسة واحدة أو تكون فارغة)
+            return {'success': true, 'sessions': sessionsList, 'message': 'Sessions loaded successfully.'};
+          } else {
+            print('[ApiService.getChildSessions] Error: Response format is not as expected (missing \$values or not a List). Body: $decodedBody');
+            return {'success': false, 'message': 'تنسيق استجابة الخادم غير متوقع.'};
+          }
+        } catch (e) {
+          print('[ApiService.getChildSessions] JSON Decode Error after manual UTF-8 decode: $e');
+          print('[ApiService.getChildSessions] Decoded Body was: $decodedBody');
+          return {'success': false, 'message': 'خطأ في تحليل استجابة الخادم.'};
+        }
+
+      }
+      // 2. لا توجد جلسات (404 Not Found) - نعتبره نجاحاً ولكن بدون بيانات
+      else if (response.statusCode == 404) {
+        print('[ApiService.getChildSessions] Info: No pending sessions found (404).');
+        // إرجاع قائمة فارغة
+        return {'success': true, 'sessions': [], 'message': 'لا توجد جلسات تالية متاحة.'};
+      }
+      // 3. خطأ المصادقة (401 Unauthorized)
+      else if (response.statusCode == 401) {
+        print('[ApiService.getChildSessions] Error: Unauthorized (401). Check JWT Token.');
+        return {'success': false, 'message': 'خطأ في المصادقة. يرجى إعادة تسجيل الدخول.'};
+      }
+      // 4. أي خطأ آخر من الخادم
+      else {
+        print('[ApiService.getChildSessions] Error: Failed with status ${response.statusCode}. Body: ${response.body}');
+        String errorMsg = 'فشل تحميل الجلسات (خطأ ${response.statusCode})';
+        // محاولة قراءة رسالة الخطأ من الـ body إذا كانت JSON
+        try {
+          final errorData = jsonDecode(utf8.decode(response.bodyBytes));
+          if(errorData is Map && errorData.containsKey('message')) { errorMsg = errorData['message']; }
+          else if (errorData is Map && errorData.containsKey('title')){ errorMsg = errorData['title']; }
+        } catch(_){} // تجاهل أخطاء فك التشفير هنا
+        return {'success': false, 'message': errorMsg};
+      }
+      // --- معالجة أخطاء الاتصال والشبكة ---
+    } on TimeoutException catch (e) {
+      print('[ApiService.getChildSessions] Error: Request timed out - $e');
+      return {'success': false, 'message': 'انتهت مهلة الاتصال بالخادم.'};
+    } on SocketException catch (e) {
+      print('[ApiService.getChildSessions] Error: Network error - $e');
+      return {'success': false, 'message': 'خطأ في الشبكة. يرجى التحقق من اتصالك بالإنترنت.'};
+    } on http.ClientException catch (e) { // أخطاء أخرى من مكتبة http
+      print('[ApiService.getChildSessions] Error: Client error - $e');
+      return {'success': false, 'message': 'حدث خطأ أثناء إعداد الطلب.'};
+    } catch (e) { // أي خطأ آخر غير متوقع
+      print('[ApiService.getChildSessions] Error: An unexpected error occurred - $e');
+      return {'success': false, 'message': 'حدث خطأ غير متوقع.'};
+    }
+  } // نهاية getChildSessions
+  // ******** دالة تحديث حالة الجلسة (جديدة) ********
+  static Future<bool> updateSessionDone(int sessionId, String jwtToken) async {
+    // بناء الـ URL مع تضمين sessionId
+    final url = Uri.parse('$baseUrl/sessioncontroller/update-session-done/$sessionId');
+    final headers = {
+      'Content-Type': 'application/json', // قد لا يكون ضرورياً لـ PUT بدون body
+      'Authorization': 'Bearer $jwtToken',
+      'Accept': 'application/json, text/plain', // توقع نص أو JSON كاستجابة
+    };
+    try {
+      print('[ApiService.updateSessionDone] Calling PUT: ${url.toString()}');
+      // استخدام http.put لأن الـ API يحددها كـ PUT
+      final response = await http.put(url, headers: headers).timeout(const Duration(seconds: 15));
+      print('[ApiService.updateSessionDone] Status Code: ${response.statusCode}');
+      // عادةً PUT أو DELETE الناجح قد يرجع 200 OK أو 204 No Content
+      bool success = response.statusCode == 200 || response.statusCode == 204;
+      if(success){
+        print('[ApiService.updateSessionDone] Success.');
+      } else {
+        print('[ApiService.updateSessionDone] Error: Failed with status ${response.statusCode}. Body: ${response.body}');
+      }
+      return success;
+    } on TimeoutException catch (e) {
+      print('[ApiService.updateSessionDone] Error: Request timed out - $e');
+      return false;
+    } on SocketException catch (e) {
+      print('[ApiService.updateSessionDone] Error: Network error - $e');
+      return false;
+    } catch (e) {
+      print('[ApiService.updateSessionDone] Error: An unexpected error occurred - $e');
+      return false;
+    }
+  } // نهاية updateSessionDone
 }
