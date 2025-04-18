@@ -1,7 +1,7 @@
-import 'package:confetti/confetti.dart';
+/*import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 
-import '../widget/break.dart'; // مكتبة التأثيرات
+import '../session/break.dart'; // مكتبة التأثيرات
 
 class EndTestScreen extends StatefulWidget {
   @override
@@ -86,3 +86,4 @@ class _EndTestScreenState extends State<EndTestScreen> {
     );
   }
 }
+*/
