@@ -17,7 +17,7 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller =
-      PageController(); // للتحكم في الانتقال بين الصفحات
+  PageController(); // للتحكم في الانتقال بين الصفحات
   int _currentIndex = 0; // لتتبع الصفحة الحالية
 
   // قائمة الصفحات التي تحتوي على المحتوى (العنوان، الوصف، والصورة)
@@ -25,7 +25,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     {
       "title": " ASPIQ!مرحبًا بك في ",
       "subtitle":
-          "نساعد الأطفال على تعلم وفهم المشاعر وتطوير مهاراتهم الاجتماعية بطريقة ممتعة ومبتكرة",
+      "نساعد الأطفال على تعلم وفهم المشاعر وتطوير مهاراتهم الاجتماعية بطريقة ممتعة ومبتكرة",
       "image": "assets/images/Group (1).png",
     },
     {
@@ -72,18 +72,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: _currentIndex == _pages.length - 1
                       ? SizedBox() // إخفاء زر "تخطي" في الصفحة الأخيرة
                       : TextButton(
-                          onPressed: () {
-                            _controller.jumpToPage(_pages.length - 1);
-                          },
-                          child: Text(
-                            "تخطي",
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Color(0xffA2A2A2),
-                              fontWeight: FontWeight.normal,
-                            ),
-                          ),
-                        ),
+                    onPressed: () {
+                      _controller.jumpToPage(_pages.length - 1);
+                    },
+                    child: Text(
+                      "تخطي",
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Color(0xffA2A2A2),
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               // عرض محتوى الـ Onboarding داخل PageView
@@ -119,48 +119,48 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     // زر "ابدأ" يظهر في الصفحة الأخيرة فقط
                     _currentIndex == _pages.length - 1
                         ? ElevatedButton(
-                            onPressed: () {
-                              // الانتقال إلى الصفحة الرئيسية بعد الانتهاء من Onboarding
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => LoginView()),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF2C73D9),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 24, vertical: 12),
-                            ),
-                            child: Text(
-                              "ابدأ",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          )
-                        // زر "التالي" للتنقل بين الصفحات
+                      onPressed: () {
+                        // الانتقال إلى الصفحة الرئيسية بعد الانتهاء من Onboarding
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => LoginView()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF2C73D9),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                      ),
+                      child: Text(
+                        "ابدأ",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                    // زر "التالي" للتنقل بين الصفحات
                         : CircleAvatar(
-                            backgroundColor: Color(0xFF2C73D9),
-                            radius: 24,
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.arrow_back_ios,
-                                color: Colors.white,
-                              ),
-                              onPressed: () {
-                                _controller.nextPage(
-                                  duration: Duration(milliseconds: 500),
-                                  curve: Curves.ease,
-                                );
-                              },
-                            ),
-                          ),
+                      backgroundColor: Color(0xFF2C73D9),
+                      radius: 24,
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.arrow_back_ios,
+                          color: Colors.white,
+                        ),
+                        onPressed: () {
+                          _controller.nextPage(
+                            duration: Duration(milliseconds: 500),
+                            curve: Curves.ease,
+                          );
+                        },
+                      ),
+                    ),
                     // زر "عودة" يظهر بعد الصفحة الأولى فقط
                     if (_currentIndex > 0)
                       TextButton(

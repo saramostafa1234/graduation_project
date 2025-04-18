@@ -76,7 +76,7 @@ class RoutesGenerator {
         );
       case PageRouteName.breaak:
         final nextScreen = settings.arguments
-            as Widget?; // استرجاع الشاشة التالية من `arguments`
+        as Widget?; // استرجاع الشاشة التالية من `arguments`
         return MaterialPageRoute(
           builder: (context) =>
               AnimatedWaveScreen(nextScreen: nextScreen ?? HomeScreen()),

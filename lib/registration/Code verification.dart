@@ -28,9 +28,9 @@ class _CodeVerificationState extends State<CodeVerification> {
   // --- تعديل: تغيير العدد إلى 6 ---
   static const int otpLength = 6;
   final List<TextEditingController> _controllers =
-      List.generate(otpLength, (index) => TextEditingController());
+  List.generate(otpLength, (index) => TextEditingController());
   final List<FocusNode> _focusNodes =
-      List.generate(otpLength, (index) => FocusNode());
+  List.generate(otpLength, (index) => FocusNode());
 
   // --- نهاية التعديل ---
 
@@ -261,7 +261,7 @@ class _CodeVerificationState extends State<CodeVerification> {
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => LoginView()),
-                  (Route<dynamic> route) => false,
+                      (Route<dynamic> route) => false,
                 );
               },
               icon: Icon(
@@ -346,7 +346,7 @@ class _CodeVerificationState extends State<CodeVerification> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide:
-                                BorderSide(color: Color(0xFF2C73D9), width: 2),
+                            BorderSide(color: Color(0xFF2C73D9), width: 2),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -412,9 +412,9 @@ class _CodeVerificationState extends State<CodeVerification> {
                   onPressed: _isLoading || _isResending
                       ? null
                       : () {
-                          print("[Button Press] الضغط على زر التحقق.");
-                          _verifyOtpCode();
-                        },
+                    print("[Button Press] الضغط على زر التحقق.");
+                    _verifyOtpCode();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2C73D9),
                     minimumSize: Size(screenWidth, 50),
@@ -425,14 +425,14 @@ class _CodeVerificationState extends State<CodeVerification> {
                   child: Center(
                     child: _isLoading
                         ? SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 3,
-                            ))
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 3,
+                        ))
                         : const Text(
-                            "تحقق",
+                      "تحقق",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,
@@ -451,29 +451,29 @@ class _CodeVerificationState extends State<CodeVerification> {
                 onPressed: _isLoading || _isResending
                     ? null
                     : () {
-                        print("[Button Press] الضغط على زر إعادة الإرسال.");
-                        _resendOtp();
-                      },
+                  print("[Button Press] الضغط على زر إعادة الإرسال.");
+                  _resendOtp();
+                },
                 child: _isResending
                     ? Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                              height: 16,
-                              width: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Color(0xFF2C73D9),
-                              )),
-                          SizedBox(width: 8),
-                          Text("جاري إعادة الإرسال...",
-                              style: TextStyle(color: Colors.grey)),
-                        ],
-                      )
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF2C73D9),
+                        )),
+                    SizedBox(width: 8),
+                    Text("جاري إعادة الإرسال...",
+                        style: TextStyle(color: Colors.grey)),
+                  ],
+                )
                     : Text(
-                        "لم تستلم الرمز؟ إعادة الإرسال",
-                        style: TextStyle(color: Color(0xFF2C73D9)),
-                      ),
+                  "لم تستلم الرمز؟ إعادة الإرسال",
+                  style: TextStyle(color: Color(0xFF2C73D9)),
+                ),
               ),
               SizedBox(height: screenHeight * 0.02),
             ],

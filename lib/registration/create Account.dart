@@ -20,14 +20,14 @@ class _CreateAccountState extends State<CreateAccount> {
   bool isNoSelected = false;
 
   final TextEditingController _therapistNameController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _therapistEmailController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _therapistPhoneController =
-      TextEditingController();
+  TextEditingController();
 
   final GlobalKey<FormState> _therapistFormKey =
-      GlobalKey<FormState>(); // Key for therapist form validation
+  GlobalKey<FormState>(); // Key for therapist form validation
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -76,7 +76,7 @@ class _CreateAccountState extends State<CreateAccount> {
           // Failed to add doctor
           setState(() {
             _errorMessage =
-                'فشل إضافة الأخصائي: ${addDoctorResponse['message']}';
+            'فشل إضافة الأخصائي: ${addDoctorResponse['message']}';
             _isLoading = false;
           });
           print(
@@ -132,7 +132,7 @@ class _CreateAccountState extends State<CreateAccount> {
                 email: userEmail, // Pass email if needed by confirmation screen
               ),
             ),
-            (Route<dynamic> route) => false, // Remove all previous routes
+                (Route<dynamic> route) => false, // Remove all previous routes
           );
         }
       } else {
@@ -307,7 +307,7 @@ class _CreateAccountState extends State<CreateAccount> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color:
-                                isNoSelected ? Colors.blue : Colors.transparent,
+                            isNoSelected ? Colors.blue : Colors.transparent,
                             border: Border.all(
                                 color: isNoSelected ? Colors.blue : Colors.grey,
                                 width: 2),
@@ -341,7 +341,7 @@ class _CreateAccountState extends State<CreateAccount> {
                                 : Colors.transparent,
                             border: Border.all(
                                 color:
-                                    isYesSelected ? Colors.blue : Colors.grey,
+                                isYesSelected ? Colors.blue : Colors.grey,
                                 width: 2),
                           ),
                           child: isYesSelected
@@ -467,7 +467,7 @@ class _CreateAccountState extends State<CreateAccount> {
                 child: _isLoading
                     ? CircularProgressIndicator(color: Colors.white)
                     : Text(
-                        "إنشاء حساب",
+                  "إنشاء حساب",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,

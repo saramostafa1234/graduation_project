@@ -93,7 +93,7 @@ class _AccountConformationState extends State<AccountConformation> {
                 // <<<--- Pass the temporary token OR otpReference ---<<<
                 otpReference: otpReference, // Keep for phone or if needed
                 tempToken:
-                    tempOtpToken, // Pass the temporary JWT token for email verification
+                tempOtpToken, // Pass the temporary JWT token for email verification
               ),
             ),
           );
@@ -112,7 +112,7 @@ class _AccountConformationState extends State<AccountConformation> {
       setState(() {
         // Display a user-friendly network error or the specific error message
         _errorMessage =
-            "حدث خطأ: ${e.toString()}"; // Show the actual exception message
+        "حدث خطأ: ${e.toString()}"; // Show the actual exception message
         // Deselect method visually on exception
         _selectedMethod = null;
       });
@@ -159,7 +159,7 @@ class _AccountConformationState extends State<AccountConformation> {
                 onPressed: _isLoading
                     ? null
                     : () {
-                        Navigator.pop(context);
+                  Navigator.pop(context);
                 },
                 icon: Icon(
                   Icons.keyboard_arrow_right_outlined,
@@ -203,9 +203,9 @@ class _AccountConformationState extends State<AccountConformation> {
               onTap: () => _sendOtp(ConfirmationMethod.email),
               child: Opacity(
                 opacity:
-                    _isLoading && _selectedMethod != ConfirmationMethod.email
-                        ? 0.5
-                        : 1.0,
+                _isLoading && _selectedMethod != ConfirmationMethod.email
+                    ? 0.5
+                    : 1.0,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Row(
@@ -302,14 +302,14 @@ class _AccountConformationState extends State<AccountConformation> {
             // --- Phone Option ---
             InkWell(
               onTap: (!canUsePhone ||
-                      (_isLoading &&
-                          _selectedMethod != ConfirmationMethod.phone))
+                  (_isLoading &&
+                      _selectedMethod != ConfirmationMethod.phone))
                   ? null
                   : () => _sendOtp(ConfirmationMethod.phone),
               child: Opacity(
                 opacity: !canUsePhone ||
-                        (_isLoading &&
-                            _selectedMethod != ConfirmationMethod.phone)
+                    (_isLoading &&
+                        _selectedMethod != ConfirmationMethod.phone)
                     ? 0.5
                     : 1.0,
                 child: Padding(
@@ -330,8 +330,8 @@ class _AccountConformationState extends State<AccountConformation> {
                               color: !canUsePhone
                                   ? Colors.grey // Disabled color
                                   : (_selectedMethod == ConfirmationMethod.phone
-                                      ? Colors.blue
-                                      : Color(0xFF2C73D9)),
+                                  ? Colors.blue
+                                  : Color(0xFF2C73D9)),
                               width: 2),
                         ),
                         child: _selectedMethod == ConfirmationMethod.phone
@@ -351,7 +351,7 @@ class _AccountConformationState extends State<AccountConformation> {
                                 fontSize: 17,
                                 fontWeight: FontWeight.w400,
                                 color:
-                                    !canUsePhone ? Colors.grey : Colors.black,
+                                !canUsePhone ? Colors.grey : Colors.black,
                               ),
                             ),
                             SizedBox(height: screenHeight * 0.002),

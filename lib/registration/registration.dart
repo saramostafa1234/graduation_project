@@ -15,14 +15,14 @@ class _RegistrationViewState extends State<RegistrationView> {
   bool _obscureText = true;
 
   final GlobalKey<FormState> _formKey =
-      GlobalKey<FormState>(); // Add form key for validation
+  GlobalKey<FormState>(); // Add form key for validation
 
   // Controllers for form fields
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _birthDateController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController =
-      TextEditingController(); // Changed to email only
+  TextEditingController(); // Changed to email only
   final TextEditingController _passwordController = TextEditingController();
 
   // Function to validate email format

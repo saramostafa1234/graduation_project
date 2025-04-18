@@ -139,9 +139,9 @@ class TestScreen5 extends StatelessWidget {
               SizedBox(height: 32),
               ElevatedButton(
                 onPressed: () async {
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setInt(
-                      'lastSessionTime', DateTime.now().millisecondsSinceEpoch);
+                  // final prefs = await SharedPreferences.getInstance();
+                  // await prefs.setInt(
+                  //     'lastSessionTime', DateTime.now().millisecondsSinceEpoch);
                   Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(

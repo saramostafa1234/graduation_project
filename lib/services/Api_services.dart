@@ -35,7 +35,7 @@ class ApiService {
         print(
             '[ApiService.loginUser] RAW RESPONSE BODY (on JSON decode error): ${response.body}');
         message =
-            'API returned non-JSON response (Status ${response.statusCode})';
+        'API returned non-JSON response (Status ${response.statusCode})';
         responseData = {'rawErrorBody': response.body};
       }
       bool success = response.statusCode == 200 &&
@@ -89,8 +89,8 @@ class ApiService {
                   : null) ??
               message;
           if (message
-                  .toLowerCase()
-                  .contains("one or more validation errors occurred") ||
+              .toLowerCase()
+              .contains("one or more validation errors occurred") ||
               responseData['errors'] != null) {
             if (responseData['errors']?['\$.birthDate'] != null) {
               message = 'خطأ في صيغة تاريخ الميلاد.';
@@ -109,7 +109,7 @@ class ApiService {
         print(
             '[ApiService.registerUser] RAW RESPONSE BODY (on JSON decode error): ${response.body}');
         message =
-            'API returned non-JSON response (Status ${response.statusCode})';
+        'API returned non-JSON response (Status ${response.statusCode})';
         responseData = {'rawErrorBody': response.body};
       }
       bool success = response.statusCode == 200 || response.statusCode == 201;
@@ -119,9 +119,9 @@ class ApiService {
         'statusCode': response.statusCode,
         'message': success
             ? (responseData is Map && responseData.containsKey('message')
-                ? responseData['message']?.toString() ??
-                    'Registration successful'
-                : 'Registration successful')
+            ? responseData['message']?.toString() ??
+            'Registration successful'
+            : 'Registration successful')
             : message,
       };
     } catch (e) {
@@ -140,9 +140,9 @@ class ApiService {
   // --- addDoctor --- (يبقى كما هو)
   static Future<Map<String, dynamic>> addDoctor(String name,
       {String degree = "Therapist",
-      String about = "Child's Therapist",
-      String? email,
-      String? phone}) async {
+        String about = "Child's Therapist",
+        String? email,
+        String? phone}) async {
     try {
       final url = Uri.parse('$baseUrl/doctor/add-doctor');
       final Map<String, dynamic> payload = {
@@ -175,7 +175,7 @@ class ApiService {
         print(
             '[ApiService.addDoctor] RAW RESPONSE BODY (on JSON decode error): ${response.body}');
         message =
-            'API returned non-JSON response (Status ${response.statusCode})';
+        'API returned non-JSON response (Status ${response.statusCode})';
         responseData = {'rawErrorBody': response.body};
       }
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -196,7 +196,7 @@ class ApiService {
           return {
             'success': false,
             'message':
-                'Doctor added (status ${response.statusCode}), but failed to parse Doctor ID from response.',
+            'Doctor added (status ${response.statusCode}), but failed to parse Doctor ID from response.',
             'data': responseData,
             'statusCode': response.statusCode
           };
@@ -205,9 +205,9 @@ class ApiService {
         if (response.statusCode == 400 &&
             responseData is Map<String, dynamic> &&
             responseData['title']
-                    ?.toString()
-                    .toLowerCase()
-                    .contains('validation errors') ==
+                ?.toString()
+                .toLowerCase()
+                .contains('validation errors') ==
                 true) {
           message = 'خطأ في بيانات الطبيب المدخلة.';
           if (responseData['errors'] != null)
@@ -326,7 +326,7 @@ class ApiService {
           (message == 'Unknown response' || message.trim().isEmpty) &&
           response.statusCode == 500) {
         message =
-            'حدث خطأ داخلي في الخادم (500). يرجى المحاولة لاحقاً أو الاتصال بالدعم.';
+        'حدث خطأ داخلي في الخادم (500). يرجى المحاولة لاحقاً أو الاتصال بالدعم.';
       } else if (!success &&
           response.statusCode == 400 &&
           message.toLowerCase().contains('user not found')) {
@@ -361,7 +361,7 @@ class ApiService {
   static Future<Map<String, dynamic>> verifyOtp(String identifier, String code,
       [String? reference]) async {
     final url =
-        Uri.parse('$baseUrl/auth/verify-otp'); // Assumed endpoint for phone
+    Uri.parse('$baseUrl/auth/verify-otp'); // Assumed endpoint for phone
     try {
       final Map<String, dynamic> payload = {
         'identifier': identifier,
@@ -405,7 +405,7 @@ class ApiService {
         print(
             '[ApiService.verifyOtp] RAW RESPONSE BODY (on JSON decode error): ${response.body}');
         message =
-            'API returned non-JSON response (Status ${response.statusCode})';
+        'API returned non-JSON response (Status ${response.statusCode})';
         responseData = {'rawErrorBody': response.body};
       }
 
@@ -424,9 +424,9 @@ class ApiService {
         'statusCode': response.statusCode,
         'message': success
             ? (responseData is Map && responseData.containsKey('message')
-                ? responseData['message']?.toString() ??
-                    'OTP verified successfully'
-                : 'OTP verified successfully')
+            ? responseData['message']?.toString() ??
+            'OTP verified successfully'
+            : 'OTP verified successfully')
             : message,
       };
     } catch (e) {
@@ -512,8 +512,8 @@ class ApiService {
                     : null) ??
                 'Unknown error structure';
             if (message
-                    .toLowerCase()
-                    .contains("one or more validation errors occurred") ||
+                .toLowerCase()
+                .contains("one or more validation errors occurred") ||
                 (responseData['errors']?.containsKey('OtpCode') ?? false)) {
               message = 'رمز التحقق غير صحيح أو انتهت صلاحيته.';
             } else if (responseData['errors']?.containsKey('Token') ?? false) {
@@ -546,7 +546,7 @@ class ApiService {
       // Refine error messages
       if (!success && message.isEmpty) {
         message =
-            'حدث خطأ غير معروف أثناء التحقق (Status: ${response.statusCode})';
+        'حدث خطأ غير معروف أثناء التحقق (Status: ${response.statusCode})';
       } else if (!success &&
           (message == 'Unknown response' || message.trim().isEmpty) &&
           response.statusCode == 400) {
@@ -577,11 +577,11 @@ class ApiService {
         'statusCode': response.statusCode,
         'message': success
             ? (isJson &&
-                    responseData is Map &&
-                    responseData.containsKey('message')
-                ? responseData['message']?.toString() ??
-                    'تم التحقق من الرمز بنجاح.'
-                : 'تم التحقق من الرمز بنجاح.') // Default success message
+            responseData is Map &&
+            responseData.containsKey('message')
+            ? responseData['message']?.toString() ??
+            'تم التحقق من الرمز بنجاح.'
+            : 'تم التحقق من الرمز بنجاح.') // Default success message
             : message,
         // Error message
       };
@@ -691,7 +691,7 @@ class ApiService {
             message = 'رمز الجلسة المستخدم غير صالح أو انتهت صلاحيته.';
           } else if (message.toLowerCase() == 'user not found.') {
             message =
-                'المستخدم المرتبط بهذا الرمز غير موجود.'; // Should ideally not happen if token is valid
+            'المستخدم المرتبط بهذا الرمز غير موجود.'; // Should ideally not happen if token is valid
           }
         }
       } catch (e) {
@@ -709,7 +709,7 @@ class ApiService {
         message = "تم إعادة تعيين كلمة المرور بنجاح.";
       } else if (!success && message.isEmpty) {
         message =
-            'فشل إعادة تعيين كلمة المرور (Status: ${response.statusCode})';
+        'فشل إعادة تعيين كلمة المرور (Status: ${response.statusCode})';
       } else if (!success &&
           (message == 'Unknown response' || message.trim().isEmpty) &&
           response.statusCode == 400) {

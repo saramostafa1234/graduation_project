@@ -116,7 +116,7 @@ class _ConfirmPhoneNumberState extends State<ConfirmPhoneNumber> {
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => HomeScreen()),
-              (Route<dynamic> route) => false,
+                  (Route<dynamic> route) => false,
             );
           }
         });
@@ -244,9 +244,9 @@ class _ConfirmPhoneNumberState extends State<ConfirmPhoneNumber> {
               onPressed: (_isLoading || _isSuccess)
                   ? null
                   : () {
-                      print("[AppBar] Back button pressed.");
-                      Navigator.pop(context);
-                    },
+                print("[AppBar] Back button pressed.");
+                Navigator.pop(context);
+              },
               icon: Icon(
                 Icons.keyboard_arrow_right_outlined,
                 size: 40,
@@ -322,7 +322,7 @@ class _ConfirmPhoneNumberState extends State<ConfirmPhoneNumber> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide:
-                          BorderSide(color: Color(0xFF2C73D9), width: 2),
+                      BorderSide(color: Color(0xFF2C73D9), width: 2),
                     ),
                   ),
                   readOnly: _isSuccess,
@@ -357,13 +357,13 @@ class _ConfirmPhoneNumberState extends State<ConfirmPhoneNumber> {
                 onPressed: (_isLoading || _isSuccess)
                     ? null
                     : () {
-                        print("[Button Press] Verify button pressed.");
-                        _verifyOtp();
-                      },
+                  print("[Button Press] Verify button pressed.");
+                  _verifyOtp();
+                },
                 // --- نهاية التعديل ---
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
-                      _isSuccess ? Colors.green : Color(0xFF2C73D9),
+                  _isSuccess ? Colors.green : Color(0xFF2C73D9),
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(horizontal: 50, vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -376,26 +376,26 @@ class _ConfirmPhoneNumberState extends State<ConfirmPhoneNumber> {
                 ),
                 child: _isLoading && !_isSuccess
                     ? SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2.0,
-                        ),
-                      )
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.0,
+                  ),
+                )
                     : _isSuccess
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.check_circle, color: Colors.white),
-                              SizedBox(width: 8),
-                              Text("تم التحقق", style: TextStyle(fontSize: 18)),
-                            ],
-                          )
-                        : Text(
-                            "تحقق من الرمز",
-                            style: TextStyle(fontSize: 18),
-                          ),
+                    ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text("تم التحقق", style: TextStyle(fontSize: 18)),
+                  ],
+                )
+                    : Text(
+                  "تحقق من الرمز",
+                  style: TextStyle(fontSize: 18),
+                ),
               ),
 
               SizedBox(height: screenHeight * 0.02),
@@ -406,9 +406,9 @@ class _ConfirmPhoneNumberState extends State<ConfirmPhoneNumber> {
                 onPressed: (_isLoading || _isSuccess)
                     ? null
                     : () {
-                        print("[Button Press] Resend button pressed.");
-                        _resendOtp();
-                      },
+                  print("[Button Press] Resend button pressed.");
+                  _resendOtp();
+                },
                 // --- نهاية التعديل ---
                 child: Text(
                   "إعادة إرسال الرمز",

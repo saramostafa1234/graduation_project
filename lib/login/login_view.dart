@@ -55,7 +55,7 @@ class _LoginViewState extends State<LoginView> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => HomeScreen()),
-          (Route<dynamic> route) => false,
+              (Route<dynamic> route) => false,
         );
       } else {
         // Login failed
@@ -150,7 +150,7 @@ class _LoginViewState extends State<LoginView> {
               if (_errorMessage != null)
                 Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   child: Text(
                     _errorMessage!,
                     style: TextStyle(color: Colors.red, fontSize: 14),
@@ -201,10 +201,10 @@ class _LoginViewState extends State<LoginView> {
                         ),
                         child: isSelected
                             ? Icon(
-                                Icons.check,
-                                size: 16,
-                                color: Colors.white,
-                              )
+                          Icons.check,
+                          size: 16,
+                          color: Colors.white,
+                        )
                             : null,
                       ),
                     ),
@@ -225,15 +225,15 @@ class _LoginViewState extends State<LoginView> {
                   ),
                   child: isLoading
                       ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
                       : const Text(
-                          "تسجيل دخول",
+                    "تسجيل دخول",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,

@@ -69,7 +69,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => LoginView()),
-          (Route<dynamic> route) => false,
+              (Route<dynamic> route) => false,
         );
       } else {
         setState(() {
@@ -102,7 +102,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
         title: Text(
           'تعيين كلمة مرور جديدة',
           style:
-              TextStyle(color: Color(0xFF2C73D9), fontWeight: FontWeight.bold),
+          TextStyle(color: Color(0xFF2C73D9), fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         // منع الرجوع التلقائي
@@ -165,7 +165,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                          // Maybe slight highlight on focus
+                        // Maybe slight highlight on focus
                           color: Theme.of(context)
                               .primaryColor
                               .withOpacity(0.5), // Example focus color
@@ -175,13 +175,13 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                       // شكل حقل الخطأ
                       borderRadius: BorderRadius.circular(12),
                       borderSide:
-                          BorderSide(color: Colors.red.shade700, width: 1.5),
+                      BorderSide(color: Colors.red.shade700, width: 1.5),
                     ),
                     focusedErrorBorder: OutlineInputBorder(
                       // شكل حقل الخطأ عند التركيز
                       borderRadius: BorderRadius.circular(12),
                       borderSide:
-                          BorderSide(color: Colors.red.shade700, width: 2.0),
+                      BorderSide(color: Colors.red.shade700, width: 2.0),
                     ),
                   ),
                   validator: (value) {
@@ -238,7 +238,7 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
-                          // Maybe slight highlight on focus
+                        // Maybe slight highlight on focus
                           color: Theme.of(context)
                               .primaryColor
                               .withOpacity(0.5), // Example focus color
@@ -248,13 +248,13 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                       // شكل حقل الخطأ
                       borderRadius: BorderRadius.circular(12),
                       borderSide:
-                          BorderSide(color: Colors.red.shade700, width: 1.5),
+                      BorderSide(color: Colors.red.shade700, width: 1.5),
                     ),
                     focusedErrorBorder: OutlineInputBorder(
                       // شكل حقل الخطأ عند التركيز
                       borderRadius: BorderRadius.circular(12),
                       borderSide:
-                          BorderSide(color: Colors.red.shade700, width: 2.0),
+                      BorderSide(color: Colors.red.shade700, width: 2.0),
                     ),
                   ),
                   validator: (value) {
@@ -292,20 +292,20 @@ class _NewPasswordScreenState extends State<NewPasswordScreen> {
                   ),
                   child: _isLoading
                       ? SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 3,
-                          ))
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 3,
+                      ))
                       : const Text(
-                          'إعادة تعيين كلمة المرور',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                    'إعادة تعيين كلمة المرور',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 SizedBox(height: screenHeight * 0.02), // مسافة إضافية
               ],

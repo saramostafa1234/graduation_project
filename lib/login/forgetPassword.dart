@@ -60,7 +60,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
       setState(() {
         isLoading = false;
         errorMessage =
-            "تعذر الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
+        "تعذر الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.";
         print("Error in sendOTPByEmail: $e");
       });
     }
@@ -173,7 +173,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border:
-                              Border.all(color: Color(0xFF2C73D9), width: 2),
+                          Border.all(color: Color(0xFF2C73D9), width: 2),
                           color: selectedMethod == "email"
                               ? Colors.blue
                               : Colors.transparent,
@@ -250,7 +250,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border:
-                              Border.all(color: Color(0xFF2C73D9), width: 2),
+                          Border.all(color: Color(0xFF2C73D9), width: 2),
                           color: selectedMethod == "phone"
                               ? Colors.blue
                               : Colors.transparent,
@@ -312,16 +312,16 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                 onPressed: isLoading
                     ? null // تعطيل الزر أثناء التحميل
                     : () {
-                        if (selectedMethod == "email") {
-                          _showEmailInputDialog(context);
-                        } else if (selectedMethod == "phone") {
-                          _showPhoneInputDialog(context);
-                        } else {
-                          setState(() {
-                            errorMessage =
-                                "الرجاء اختيار طريقة لاستعادة الحساب";
-                          });
-                        }
+                  if (selectedMethod == "email") {
+                    _showEmailInputDialog(context);
+                  } else if (selectedMethod == "phone") {
+                    _showPhoneInputDialog(context);
+                  } else {
+                    setState(() {
+                      errorMessage =
+                      "الرجاء اختيار طريقة لاستعادة الحساب";
+                    });
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF2C73D9),
@@ -332,14 +332,14 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                 ),
                 child: isLoading
                     ? SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 3,
-                        ))
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 3,
+                    ))
                     : const Text(
-                        "متابعة",
+                  "متابعة",
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,

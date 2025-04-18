@@ -1,405 +1,11 @@
-// import 'dart:async';
-//
-// import 'package:flutter/cupertino.dart';
-// import 'package:flutter/material.dart';
-// import 'package:myfinalpro/screens/skills.dart';
-// import 'package:myfinalpro/screens/test1.dart';
-// import 'package:myfinalpro/screens/timetest.dart';
-// import 'package:myfinalpro/session/seesion.dart';
-//
-// import '../widget/custom_drawer.dart';
-// import '../widgets/Notifictionicon.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
-//
-// import 'emotion.dart';
-//
-// class HomeScreen extends StatefulWidget {
-//   @override
-//   _HomeScreenState createState() => _HomeScreenState();
-// }
-//
-// class _HomeScreenState extends State<HomeScreen> {
-//   bool isSessionAvailable = false;
-//   Duration remainingTime = Duration.zero;
-//   Timer? timer;
-//   double emotionProgress = 0.5;
-//   double skillsProgress = 0.9;
-//   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-//   @override
-//   void initState() {
-//     super.initState();
-//     _loadSessionData();
-//   }
-//
-//   @override
-//   void dispose() {
-//     timer?.cancel();
-//     super.dispose();
-//   }
-//
-//   Future<void> _loadSessionData() async {
-//     final prefs = await SharedPreferences.getInstance();
-//     final lastSessionTime = prefs.getInt('lastSessionTime') ?? 0;
-//     final currentTime = DateTime.now().millisecondsSinceEpoch;
-//     final sessionCooldown = 48 * 60 * 60 * 1000; // 48 ساعة بالمللي ثانية
-//
-//     if (currentTime - lastSessionTime >= sessionCooldown) {
-//       setState(() {
-//         isSessionAvailable = true;
-//         remainingTime = Duration.zero;
-//       });
-//     } else {
-//       setState(() {
-//         isSessionAvailable = false;
-//         remainingTime = Duration(
-//             milliseconds: sessionCooldown - (currentTime - lastSessionTime));
-//       });
-//
-//       timer = Timer.periodic(Duration(seconds: 1), (timer) {
-//         if (remainingTime.inSeconds > 0) {
-//           setState(() {
-//             remainingTime = remainingTime - Duration(seconds: 1);
-//           });
-//         } else {
-//           setState(() {
-//             isSessionAvailable = true;
-//             timer.cancel();
-//           });
-//         }
-//       });
-//     }
-//   }
-//
-//   String formatDuration(Duration duration) {
-//     int hours = duration.inHours;
-//     int minutes = (duration.inMinutes % 60);
-//     int seconds = (duration.inSeconds % 60);
-//
-//     return '\u202E${_convertToArabicNumbers(seconds)} : ${_convertToArabicNumbers(minutes)} : ${_convertToArabicNumbers(hours)}';
-//   }
-//
-//   String _convertToArabicNumbers(int number) {
-//     const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-//     return number
-//         .toString()
-//         .split('')
-//         .map((digit) => arabicNumbers[int.parse(digit)])
-//         .join('');
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final screenWidth = MediaQuery.of(context).size.width;
-//     final screenHeight = MediaQuery.of(context).size.height;
-//     final double circleSize = screenWidth * 0.4;
-//     final double editIconSize = circleSize * 0.3;
-//
-//     return Directionality(
-//       textDirection: TextDirection.rtl,
-//       child: Scaffold(
-//         key: scaffoldKey,
-//         backgroundColor: Colors.white,
-//         endDrawer
-//             : CustomDrawer(),
-//         appBar: AppBar(
-//           backgroundColor: Colors.white,
-//           elevation: 0,
-//           leading: Builder(
-//             builder: (context) => Padding(
-//               padding: const EdgeInsets.only(left: 16.0, top: 16),
-//               /*child: IconButton(
-//                 // ✅ النوتفكيشن على اليمين
-//                 icon: Icon(Icons.notifications, color: Color(0xff2C73D9)),
-//                  onPressed: () {
-//     Navigator.push(
-//       context,
-//       MaterialPageRoute(builder: (context) => NotificationsScreen()),
-//     );
-//   },
-//               ),*/
-//               child: NotificationIcon(),
-//             ),
-//           ),
-//           actions: [
-//             IconButton(
-//               // ✅ المنيو على اليسار وتفتح السايد بار
-//               icon: Padding(
-//                 padding: const EdgeInsets.only(right: 32.0, top: 20),
-//                 child: Icon(
-//                   Icons.menu,
-//                   color: Color(0xff2C73D9),
-//                   size: 32,
-//                 ),
-//               ),
-//               onPressed: () {
-//                 scaffoldKey.currentState
-//                     ?.openEndDrawer(); // فتح السايد بار عند الضغط
-//               },
-//             ),
-//           ],
-//         ),
-//
-//         body: SingleChildScrollView(
-//           padding: const EdgeInsets.only(left: 10, right: 10),
-//           child: Column(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             children: [
-//               //SizedBox(height: 16,),
-//               Center(
-//                   child: Text('مرحبا !',
-//                       style: TextStyle(
-//                           fontSize: 28,
-//                           color: Color(0xff2C73D9),
-//                           fontWeight: FontWeight.bold))),
-//               SizedBox(height: 20),
-//               Container(
-//                 width: double.infinity,
-//                 //height: 130,
-//                 padding: EdgeInsets.all(16),
-//                 decoration: BoxDecoration(
-//                     color: Color(0xff2C73D9),
-//                     borderRadius: BorderRadius.circular(12)),
-//                 child: Column(
-//                   //crossAxisAlignment: CrossAxisAlignment.center,
-//                   children: [
-//                     Align(
-//                       alignment: Alignment.centerRight, // يجعله على اليمين
-//                       child: Text(
-//                         isSessionAvailable
-//                             ? 'حان وقت الجلسة!'
-//                             : 'تبقى على الجلسة القادمة',
-//                         style: TextStyle(
-//                             color: Colors.white,
-//                             fontSize: 18,
-//                             fontWeight: FontWeight.bold),
-//                       ),
-//                     ),
-//                     SizedBox(height: 4),
-//                     isSessionAvailable
-//                         ? Row(
-//                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                       children: [
-//                         Padding(
-//                           padding: const EdgeInsets.all(8.0),
-//                           child: ElevatedButton(
-//                             onPressed: ()  {
-//                                 Navigator.push(context, MaterialPageRoute(builder: (context)=>SessionView()));
-//                               // final prefs =
-//                               // await SharedPreferences.getInstance();
-//                               // await prefs.setInt('lastSessionTime',
-//                               //     DateTime.now().millisecondsSinceEpoch);
-//                               // setState(() {
-//                               //   isSessionAvailable = false;
-//                               //   remainingTime = Duration(hours: 48);
-//                               // });
-//                               // _loadSessionData(); // إعادة تحميل البيانات
-//                             },
-//                             child: Text(
-//                               'ابدأ الجلسة',
-//                               style: TextStyle(
-//                                   color: Color(0xff2C73D9), fontSize: 16),
-//                             ),
-//                             style: ElevatedButton.styleFrom(
-//                                 backgroundColor: Colors.white,
-//                                 shape: RoundedRectangleBorder(
-//                                     borderRadius:
-//                                     BorderRadius.circular(22))),
-//                           ),
-//                         ),
-//                         // Image.asset(
-//                         //   // 'assets/images/session.png',
-//                         //   //   width: screenWidth * 0.4, // الحجم يتغير حسب العرض
-//                         //   //   height: screenHeight * 0.2, // الحجم يتغير حسب الطول
-//                         //   //   fit: BoxFit.contain,
-//                         //
-//                         // ),
-//
-//                       ],
-//                     )
-//                         : Column(
-//                       children: [
-//                         Text(
-//                           formatDuration(remainingTime),
-//                           style: TextStyle(
-//                               color: Colors.white,
-//                               fontSize: 24,
-//                               fontWeight: FontWeight.bold),
-//                         ),
-//                         SizedBox(height: 2),
-//                         Text(
-//                           'ثواني : دقيقة : ساعة',
-//                           style: TextStyle(
-//                               color: Colors.white, fontSize: 14),
-//                         ),
-//                       ],
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//               SizedBox(height: 10),
-//
-//               Container(
-//                 width: double.infinity,
-//                 //height: 130,
-//                 padding: EdgeInsets.only(top: 8, left: 16, right: 16),
-//                 decoration: BoxDecoration(
-//                     color: Color(0xFFE3EBF8).withOpacity(0.24),
-//                     borderRadius: BorderRadius.circular(12)),
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     Text(
-//                       'التقييم الشهري',
-//                       textDirection: TextDirection.rtl,
-//                       textAlign: TextAlign.right, // محاذاة النص لليمين
-//                       style: TextStyle(
-//                           fontSize: 18,
-//                           fontWeight: FontWeight.bold,
-//                           color: Color(0xff2C73D9)),
-//                     ),
-//                     Text(
-//                       'تقييم شهري وكل ثلاثة أشهر لمتابعة التقدم.',
-//                       style: TextStyle(color: Color(0xff474747)),
-//                       textDirection: TextDirection.rtl,
-//                       textAlign: TextAlign.right, // محاذاة النص لليمين
-//                     ),
-//                     SizedBox(height: 12),
-//                     Align(
-//                       alignment: Alignment.centerLeft,
-//                       child: ElevatedButton(
-//                         onPressed: () {
-//                           Navigator.push(
-//                             context,
-//                             MaterialPageRoute(
-//                                 builder: (context) =>
-//                                     StartTest()), // استبدلي "TestScreen" بالشاشة التي تريدين عرضها
-//                           );
-//                         },
-//                         child: Text('ابدأ الاختبار'),
-//                         style: ElevatedButton.styleFrom(
-//                           backgroundColor: Color(0xff2C73D9),
-//                           foregroundColor: Colors.white,
-//                           shape: RoundedRectangleBorder(
-//                               borderRadius: BorderRadius.circular(16)),
-//                         ),
-//                       ),
-//                     ),
-//                     SizedBox(
-//                       height: 4,
-//                     )
-//                   ],
-//                 ),
-//               ),
-//
-//               SizedBox(height: 10),
-//               Padding(
-//                 padding: const EdgeInsets.only(right: 16.0),
-//                 child: Text('تطوير المهارات وإدارة الانفعالات',
-//                     style: TextStyle(
-//                         fontSize: 18,
-//                         fontWeight: FontWeight.bold,
-//                         color: Color(0xff2C73D9))),
-//               ),
-//               SizedBox(height: 10),
-//               _buildProgressCard(
-//                   'الانفعالات',
-//                   'تمارين للتعرف على المشاعر وإدارتها',
-//                   emotionProgress,
-//                   Color(0xff2C73D9),
-//                   '/emotions',
-//                   0),
-//               SizedBox(height: 10),
-//               _buildProgressCard(
-//                   'تنمية المهارات',
-//                   'استكشف تمارين قيمة تساعدك على تطوير مهاراتك الشخصية والاجتماعية خطوة بخطوة!',
-//                   skillsProgress,
-//                   Color(0xff2C73D9),
-//                   '/skills',
-//                   1),
-//               SizedBox(height: 40),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-//
-//   Widget _buildProgressCard(String title, String subtitle, double progress,
-//       Color color, String route, int index) {
-//     return Card(
-//       color: Colors.white,
-//       elevation: 2,
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-//       child: Column(
-//         children: [
-//           ListTile(
-//             title: Text(title,
-//                 style: TextStyle(
-//                     fontWeight: FontWeight.bold, color: Color(0xff2C73D9))),
-//             subtitle: Column(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: [
-//                 Text(
-//                   subtitle,
-//                   style: TextStyle(color: Color(0xff474747)),
-//                 ),
-//                 SizedBox(height: 8),
-//                 Row(
-//                   children: [
-//                     Expanded(
-//                       child: LinearProgressIndicator(
-//                           value: progress,
-//                           backgroundColor: Colors.grey[300],
-//                           color: color),
-//                     ),
-//                     SizedBox(width: 10),
-//                     Padding(
-//                       padding: const EdgeInsets.only(bottom: 30.0),
-//                       child: Text(
-//                         '${(progress * 100).toInt()}%',
-//                         style: TextStyle(
-//                           // fontWeight: FontWeight.bold,
-//                             fontSize: 12,
-//                             color: Color(0xff474747)),
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ],
-//             ),
-//             trailing: InkWell(
-//               borderRadius: BorderRadius.circular(12),
-//               onTap: () {
-//                 Navigator.push(
-//                   context,
-//                   MaterialPageRoute(
-//                       builder: (context) => index == 0
-//                           ? EmotionScreen() // إذا كان أول كارد، انتقل إلى EmotionScreen
-//                           : SkillsScreen()), // غير ذلك انتقل إلى SkillsScreen
-//                 );
-//               },
-//               child: Padding(
-//                 padding: EdgeInsets.all(8), // يوسع منطقة الضغط
-//                 child: Icon(Icons.arrow_forward_ios,
-//                     size: 18, color: Color(0xff2C73D9)),
-//               ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:myfinalpro/screens/skills.dart';
 import 'package:myfinalpro/screens/timetest.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../session/seesion.dart';
-import '../widget/custom_drawer.dart';
-import '../widgets/Notifictionicon.dart';
+import '../widget/custom_drawer.dart'; // <-- استخدم هذا الكود للـ Drawer
+import '../widgets/Notifictionicon.dart'; // لاحظ حرف i صغير
 import 'emotion.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -408,128 +14,214 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-  bool isSessionAvailable = false; // لتحديد ما إذا كانت الجلسة متاحة
-  bool isSessionInProgress = false; // لتحديد ما إذا كانت الجلسة قيد التقدم
-  Duration remainingTime =
-      Duration(hours: 47, minutes: 59, seconds: 59); // الزمن المتبقي للجلسة
-  Timer? timer; // المؤقت
-  double emotionProgress = 0.5; // تقدم الانفعالات
-  double skillsProgress = 0.9; // تقدم المهارات
+  // --- لا حاجة لـ GlobalKey بعد الآن ---
+  // final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
+  bool isSessionAvailable = false;
+  bool isSessionInProgress = false;
+  Duration remainingTime = Duration.zero;
+  Timer? timer;
+  double emotionProgress = 0.5;
+  double skillsProgress = 0.9;
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadSessionData(); // تحميل بيانات الجلسة عند بدء التطبيق
+    print("--- HomeScreen initState START ---");
+    _loadSessionData();
+    print("--- HomeScreen initState END ---");
   }
 
   @override
   void dispose() {
-    timer?.cancel(); // إيقاف المؤقت عند مغادرة الصفحة
+    print("--- HomeScreen dispose ---");
+    timer?.cancel();
     super.dispose();
   }
 
+  // --- _loadSessionData, _startCooldownTimer, formatDuration, _convertToArabicNumbers تبقى كما هي ---
   Future<void> _loadSessionData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final lastSessionTime = prefs.getInt('lastSessionTime') ?? 0;
-    final currentTime = DateTime.now().millisecondsSinceEpoch;
-    final sessionCooldown = 48 * 60 * 60 * 1000; // 48 ساعة بالمللي ثانية
-
-    if (currentTime - lastSessionTime >= sessionCooldown) {
+    if (mounted && _isLoading == false) {
       setState(() {
-        isSessionAvailable = true; // يمكن بدء الجلسة الجديدة
-        isSessionInProgress = false; // الجلسة ليست قيد التقدم
-        remainingTime = Duration.zero; // لا يوجد زمن متبقي
+        _isLoading = true;
+        _errorMessage = null;
       });
-    } else {
-      setState(() {
-        isSessionAvailable = false; // لا يمكن بدء الجلسة بعد
-        isSessionInProgress = true; // نجعلها قيد التقدم في هذه الحالة
-        remainingTime = Duration(
-            milliseconds: sessionCooldown -
-                (currentTime - lastSessionTime)); // حساب الزمن المتبقي
-      });
+    } else if (!mounted) {
+      return;
+    }
 
-      // إعداد مؤقت لتحديث الزمن المتبقي كل ثانية
-      timer = Timer.periodic(Duration(seconds: 1), (timer) {
-        if (remainingTime.inSeconds > 0) {
+    try {
+      print("--- _loadSessionData: Attempting to load SharedPreferences ---");
+      final prefs = await SharedPreferences.getInstance();
+      final lastSessionTimestamp = prefs.getInt('lastSessionDuration');
+      final currentTime = DateTime.now().millisecondsSinceEpoch;
+      final sessionCooldown = 48 * 60 * 60 * 1000; // 48 hours
+
+      print("--- _loadSessionData ---");
+      print("Last Session Timestamp: $lastSessionTimestamp");
+      print("Current Time: $currentTime");
+
+      if (lastSessionTimestamp == null) {
+        print("No previous session found. Session available.");
+        if (mounted) {
           setState(() {
-            remainingTime = remainingTime - Duration(seconds: 1);
-          });
-        } else {
-          setState(() {
-            isSessionAvailable = true; // الجلسة الآن متاحة
-            isSessionInProgress = false; // الجلسة انتهت
-            timer.cancel();
+            isSessionAvailable = true;
+            isSessionInProgress = false;
+            remainingTime = Duration.zero;
+            _isLoading = false;
           });
         }
-      });
+        return;
+      }
+
+      final elapsedTime = currentTime - lastSessionTimestamp;
+      print("Elapsed Time (ms): $elapsedTime");
+      print("Cooldown Time (ms): $sessionCooldown");
+
+      if (elapsedTime >= sessionCooldown) {
+        print("Cooldown completed. Session available.");
+        if (mounted) {
+          setState(() {
+            isSessionAvailable = true;
+            isSessionInProgress = false;
+            remainingTime = Duration.zero;
+            _isLoading = false;
+          });
+        }
+        timer?.cancel();
+      } else {
+        final remainingMs = sessionCooldown - elapsedTime;
+        print("Session in cooldown. Remaining ms: $remainingMs");
+
+        if (mounted) {
+          setState(() {
+            isSessionAvailable = false;
+            isSessionInProgress = true;
+            remainingTime = Duration(milliseconds: remainingMs);
+            _isLoading = false;
+          });
+        }
+        _startCooldownTimer(lastSessionTimestamp, sessionCooldown);
+      }
+    } catch (e) {
+      print("Error loading session data: $e");
+      if (mounted) {
+        setState(() {
+          isSessionAvailable = true;
+          isSessionInProgress = false;
+          remainingTime = Duration.zero;
+          _isLoading = false;
+          _errorMessage = "حدث خطأ أثناء تحميل بيانات الجلسة.";
+        });
+      }
     }
   }
 
-  String formatDuration(Duration duration) {
-    int hours = duration.inHours;
-    int minutes = (duration.inMinutes % 60);
-    int seconds = (duration.inSeconds % 60);
+  void _startCooldownTimer(int sessionStartTime, int sessionCooldown) {
+    timer?.cancel();
+    print("Starting/Resetting cooldown timer...");
+    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        print("Timer: Widget unmounted, cancelling timer.");
+        timer.cancel();
+        return;
+      }
 
-    return '\u202E${_convertToArabicNumbers(seconds)} : ${_convertToArabicNumbers(minutes)} : ${_convertToArabicNumbers(hours)}';
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final elapsed = now - sessionStartTime;
+
+      if (elapsed >= sessionCooldown) {
+        print("Timer: Cooldown completed.");
+        if (mounted) {
+          setState(() {
+            isSessionAvailable = true;
+            isSessionInProgress = false;
+            remainingTime = Duration.zero;
+          });
+        }
+        timer.cancel();
+      } else {
+        final remaining = sessionCooldown - elapsed;
+        if (remainingTime.inSeconds != Duration(milliseconds: remaining).inSeconds) {
+          if(mounted){
+            setState(() {
+              remainingTime = Duration(milliseconds: remaining);
+            });
+          }
+        }
+      }
+    });
   }
 
-  String _convertToArabicNumbers(int number) {
-    const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-    return number
-        .toString()
-        .split('')
-        .map((digit) => arabicNumbers[int.parse(digit)])
-        .join('');
+  String formatDuration(Duration duration) {
+    final hours = duration.inHours.clamp(0, 48);
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    final arabicHours = _convertToArabicNumbers(hours.toString().padLeft(2, '0'));
+    final arabicMinutes = _convertToArabicNumbers(minutes.toString().padLeft(2, '0'));
+    final arabicSeconds = _convertToArabicNumbers(seconds.toString().padLeft(2, '0'));
+    return '$arabicHours:$arabicMinutes:$arabicSeconds';
+  }
+
+  String _convertToArabicNumbers(String number) {
+    const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return number.replaceAllMapped(RegExp(r'[0-9]'),
+            (match) => arabicNumerals[int.parse(match.group(0)!)]);
   }
 
   @override
   Widget build(BuildContext context) {
+    print("--- HomeScreen build START ---");
+    print("State: isLoading: $_isLoading, isSessionAvailable: $isSessionAvailable, isSessionInProgress: $isSessionInProgress, errorMessage: $_errorMessage");
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        key: scaffoldKey,
+        // --- إزالة GlobalKey ---
+        // key: scaffoldKey,
         backgroundColor: Colors.white,
+        // --- استخدام CustomDrawer ---
         endDrawer: CustomDrawer(),
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          leading: Builder(
+          leading: Builder( // لا يزال Builder مفيداً هنا لو احتجت context مختلف
             builder: (context) => Padding(
               padding: const EdgeInsets.only(left: 16.0, top: 16),
-              /*child: IconButton(
-                // ✅ النوتفكيشن على اليمين
-                icon: Icon(Icons.notifications, color: Color(0xff2C73D9)),
-                 onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => NotificationsScreen()),
-    );
-  },
-              ),*/
               child: NotificationIcon(),
             ),
           ),
           actions: [
-            IconButton(
-              // ✅ المنيو على اليسار وتفتح السايد بار
-              icon: Padding(
-                padding: const EdgeInsets.only(right: 32.0, top: 20),
-                child: Icon(
-                  Icons.menu,
-                  color: Color(0xff2C73D9),
-                  size: 32,
+            // --- استخدام Builder لـ IconButton للحصول على context الصحيح ---
+            Builder(
+              builder: (context) => IconButton(
+                icon: Padding(
+                  padding: const EdgeInsets.only(right: 32.0, top: 20),
+                  child: Icon(
+                    Icons.menu,
+                    color: Color(0xff2C73D9),
+                    size: 32,
+                  ),
                 ),
+                onPressed: () {
+                  // --- استخدام Scaffold.of(context) لفتح الـ endDrawer ---
+                  Scaffold.of(context).openEndDrawer();
+                  print("Menu icon pressed, attempting to open endDrawer.");
+                },
               ),
-              onPressed: () {
-                scaffoldKey.currentState
-                    ?.openEndDrawer(); // فتح السايد بار عند الضغط
-              },
             ),
+            // --------------------------------------------------------------
           ],
         ),
-        body: SingleChildScrollView(
+        body: _isLoading
+            ? Center(
+          child: CircularProgressIndicator(color: Color(0xff2C73D9)),
+        )
+            : _errorMessage != null
+            ? Center( /* ... كود عرض الخطأ ... */ )
+            : SingleChildScrollView( /* ... كود المحتوى الرئيسي ... */
           padding: const EdgeInsets.only(left: 10, right: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -542,6 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: FontWeight.bold)),
               ),
               SizedBox(height: 20),
+              // --- حاوية حالة الجلسة ---
               Container(
                 width: double.infinity,
                 padding: EdgeInsets.all(16),
@@ -554,10 +247,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       alignment: Alignment.centerRight,
                       child: Text(
                         isSessionInProgress
-                            ? 'الجلسة قيد التقدم!' // حالة الجلسة
+                            ? 'تبقى على الجلسة القادمة'
                             : isSessionAvailable
-                                ? 'حان وقت الجلسة!' // عند توفر الجلسة
-                                : 'تبقى على الجلسة القادمة', // الوقت المتبقي للجلسة
+                            ? 'حان وقت الجلسة!'
+                            : 'لا توجد جلسة حالية',
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -565,9 +258,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     SizedBox(height: 4),
-                    if (isSessionInProgress || !isSessionAvailable) ...[
+                    if (isSessionInProgress) ...[
                       Text(
-                        formatDuration(remainingTime), // الزمن المتبقي
+                        formatDuration(remainingTime),
                         style: TextStyle(
                             color: Colors.white,
                             fontSize: 24,
@@ -576,27 +269,42 @@ class _HomeScreenState extends State<HomeScreen> {
                       SizedBox(height: 2),
                       Text(
                         'ثواني : دقيقة : ساعة',
-                        style: TextStyle(color: Colors.white, fontSize: 14),
+                        style: TextStyle(
+                            color: Colors.white, fontSize: 14),
                       ),
                     ] else if (isSessionAvailable) ...[
                       ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    SessionView()), // الانتقال إلى شاشة الجلسة
-                          );
+                        onPressed: () async {
+                          try {
+                            print("Starting session...");
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setInt('lastSessionDuration', DateTime.now().millisecondsSinceEpoch);
+                            print("Saved current session start time.");
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => SessionView()),
+                            ).then((_) {
+                              print("Returned from SessionView, reloading session data.");
+                              _loadSessionData();
+                            });
+                          } catch (e) {
+                            print("Error starting session: $e");
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('حدث خطأ عند بدء الجلسة.'))
+                            );
+                          }
                         },
                         child: Text(
                           'ابدأ الجلسة',
-                          style:
-                              TextStyle(color: Color(0xff2C73D9), fontSize: 16),
+                          style: TextStyle(
+                              color: Color(0xff2C73D9), fontSize: 16),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(22)),
+                              borderRadius:
+                              BorderRadius.circular(22)),
                         ),
                       ),
                     ],
@@ -616,8 +324,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Text(
                       'التقييم الشهري',
-                      textDirection: TextDirection.rtl,
-                      textAlign: TextAlign.right,
                       style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -626,8 +332,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       'تقييم شهري وكل ثلاثة أشهر لمتابعة التقدم.',
                       style: TextStyle(color: Color(0xff474747)),
-                      textDirection: TextDirection.rtl,
-                      textAlign: TextAlign.right,
                     ),
                     SizedBox(height: 12),
                     Align(
@@ -638,7 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             context,
                             MaterialPageRoute(
                                 builder: (context) =>
-                                    StartTest()), // الانتقال إلى اختبار جديد
+                                    StartTest()),
                           );
                         },
                         child: Text('ابدأ الاختبار'),
@@ -669,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'تمارين للتعرف على المشاعر وإدارتها',
                   emotionProgress,
                   Color(0xff2C73D9),
-                  'emotions',
+                      () => Navigator.push(context, MaterialPageRoute(builder: (context) => EmotionScreen())),
                   0),
               SizedBox(height: 10),
               _buildProgressCard(
@@ -677,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'استكشف تمارين قيمة تساعدك على تطوير مهاراتك الشخصية والاجتماعية خطوة بخطوة!',
                   skillsProgress,
                   Color(0xff2C73D9),
-                  'skills',
+                      () => Navigator.push(context, MaterialPageRoute(builder: (context) => SkillsScreen())),
                   1),
               SizedBox(height: 40),
             ],
@@ -687,129 +391,65 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // --- _buildProgressCard يبقى كما هو ---
   Widget _buildProgressCard(String title, String subtitle, double progress,
-      Color color, String route, int index) {
+      Color color, VoidCallback onTap, int index) {
+    // ... الكود الخاص بـ _buildProgressCard ...
     return Card(
       color: Colors.white,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        children: [
-          ListTile(
-            title: Text(title,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, color: Color(0xff2C73D9))),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  subtitle,
-                  style: TextStyle(color: Color(0xff474747)),
-                ),
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: LinearProgressIndicator(
-                          value: progress,
-                          backgroundColor: Colors.grey[300],
-                          color: color),
-                    ),
-                    SizedBox(width: 10),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 30.0),
-                      child: Text(
-                        '${(progress * 100).toInt()}%',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xff474747),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            trailing: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                Navigator.pushNamed(context, route);
-              },
-              child: Padding(
-                padding: EdgeInsets.all(8),
-                child: Icon(Icons.arrow_forward_ios,
-                    size: 18, color: Color(0xff2C73D9)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-Widget _buildProgressCard(BuildContext context, String title, String subtitle,
-    double progress, Color color, String route, int index) {
-  return Card(
-    color: Colors.white,
-    elevation: 2,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    child: Column(
-      children: [
-        ListTile(
-          title: Text(title,
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: Color(0xff2C73D9))),
-          subtitle: Column(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(title,
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Color(0xff2C73D9), fontSize: 16)),
+                  Icon(Icons.arrow_forward_ios, size: 18, color: Color(0xff2C73D9)),
+                ],
+              ),
+              SizedBox(height: 4),
               Text(
                 subtitle,
-                style: TextStyle(color: Color(0xff474747)),
+                style: TextStyle(color: Color(0xff474747), fontSize: 14),
               ),
-              SizedBox(height: 8),
+              SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
-                    child: LinearProgressIndicator(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8.0),
+                      child: LinearProgressIndicator(
                         value: progress,
                         backgroundColor: Colors.grey[300],
-                        color: color),
+                        color: color,
+                        minHeight: 6,
+                      ),
+                    ),
                   ),
                   SizedBox(width: 10),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 30.0),
-                    child: Text(
-                      '${(progress * 100).toInt()}%',
-                      style: TextStyle(
-                          // fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          color: Color(0xff474747)),
+                  Text(
+                    '${_convertToArabicNumbers((progress * 100).toInt().toString())}٪',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xff474747),
+                        fontWeight: FontWeight.bold
                     ),
                   ),
                 ],
               ),
             ],
           ),
-          trailing: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => index == 0
-                        ? EmotionScreen() // إذا كان أول كارد، انتقل إلى EmotionScreen
-                        : SkillsScreen()), // غير ذلك انتقل إلى SkillsScreen
-              );
-            },
-            child: Padding(
-              padding: EdgeInsets.all(8), // يوسع منطقة الضغط
-              child: Icon(Icons.arrow_forward_ios,
-                  size: 18, color: Color(0xff2C73D9)),
-            ),
-          ),
         ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }

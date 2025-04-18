@@ -55,7 +55,7 @@ class _ResetpasswordbyphoneState extends State<Resetpasswordbyphone> {
     } catch (error) {
       setState(() {
         _errorMessage =
-            'Network error. Please check your connection and try again.';
+        'Network error. Please check your connection and try again.';
       });
     } finally {
       setState(() {
@@ -161,7 +161,7 @@ class _ResetpasswordbyphoneState extends State<Resetpasswordbyphone> {
                 child: _isLoading
                     ? CircularProgressIndicator(color: Colors.white)
                     : const Text(
-                        "متابعة",
+                  "متابعة",
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
