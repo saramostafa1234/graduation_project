@@ -296,15 +296,43 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
   }
 
   // --- التمرير لأسفل ---
-   void _scrollToBottom() { /* ... نفس الكود ... */ }
+   // داخل الكلاس _AssessmentScreenState في ملف assessment_screen.dart
+
+// --- التمرير لأسفل ---
+void _scrollToBottom() {
+  // التأكد أولاً أن الويدجت ما زال موجوداً في الشجرة
+  if (!mounted) {
+    return;
+  }
+
+  // جدولة عملية التمرير لتحدث بعد اكتمال بناء الإطار الحالي
+  // هذا يضمن أن حجم الـ ListView محدّث ويشمل الرسالة الجديدة
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    // التأكد مرة أخرى من وجود الويدجت ومن أن الـ ScrollController مرتبط بـ ListView
+    if (mounted && _scrollController.hasClients) {
+      // استخدام animateTo لتمرير سلس لأسفل القائمة
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent, // الانتقال إلى أقصى نقطة يمكن التمرير إليها (الأسفل)
+        duration: const Duration(milliseconds: 300), // مدة الأنيميشن (يمكن تعديلها)
+        curve: Curves.easeOut, // نوع منحنى الحركة للأنيميشن (يمكن تعديله)
+      );
+
+      /* 
+      // بديل: استخدام jumpTo للانتقال الفوري بدون أنيميشن (إذا كنت تفضل ذلك)
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent); 
+      */
+    }
+  });
+}
 
   @override
   Widget build(BuildContext context) {
     // --- (تم حذف isIndexValid و currentQuestionData غير المستخدمين) ---
 
     return Scaffold(
-      appBar: AppBar( title: const Text('المساعد الذكي'), backgroundColor: Colors.white, foregroundColor: const Color(0xFF2C73D9), elevation: 1, centerTitle: true, automaticallyImplyLeading: false,),
-      backgroundColor: const Color(0xFFF0F4F8),
+       backgroundColor: Colors.white,
+      appBar: AppBar( title: const Text('لنتحدث عن طفلك'), backgroundColor: Colors.white, foregroundColor: const Color(0xFF2C73D9), elevation: 1, centerTitle: true, automaticallyImplyLeading: false,),
+      //backgroundColor: const Color(0xFFF0F4F8),
       body: Column(
         children: [
           // --- منطقة عرض المحادثة ---

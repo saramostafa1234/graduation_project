@@ -1,190 +1,197 @@
 // lib/screens/animated_break_screen.dart (اسم مقترح للملف)
+// lib/screens/break_screen.dart
+import 'dart:async'; // لاستخدام Timer
 import 'package:flutter/material.dart';
-import 'dart:async';
-import 'dart:math'; // لاستخدام sin
+import 'dart:math';
 
-class AnimatedWaveScreen extends StatefulWidget {
-  final Duration breakDuration; // <-- استقبال مدة البريك
+class BreakScreen extends StatefulWidget {
+  final Duration duration; // استقبال المدة
 
-  // تعديل الـ constructor لاستقبال المدة واستخدام super.key
-  const AnimatedWaveScreen({super.key, required this.breakDuration});
+  const BreakScreen({Key? key, required this.duration}) : super(key: key);
 
   @override
-  _AnimatedWaveScreenState createState() => _AnimatedWaveScreenState();
+  _BreakScreenState createState() => _BreakScreenState();
 }
 
-class _AnimatedWaveScreenState extends State<AnimatedWaveScreen>
-    with SingleTickerProviderStateMixin {
-  // --- متغيرات الأنيميشن ---
-  late AnimationController _animationController;
-  double _waveOffset = 0.0;
-  // ---------------------
+class _BreakScreenState extends State<BreakScreen> with TickerProviderStateMixin { // استخدم TickerProviderStateMixin
+  late AnimationController _waveController;
+  late AnimationController _timerController; // للتحكم في مؤقت العد التنازلي
+  double waveOffset = 0.0;
+  Timer? _popTimer; // مؤقت للإغلاق التلقائي
 
-  // --- متغيرات المؤقت ---
-  Timer? _breakTimer;
-  late Duration _remainingTime;
-  // ---------------------
+  // حساب الوقت المتبقي
+  Duration get _remainingTime {
+     if (!_timerController.isAnimating && !_timerController.isCompleted) {
+         return widget.duration; // الوقت الأولي
+     }
+     // حساب الوقت المتبقي بناءً على تقدم الأنيميشن
+     return widget.duration * (1.0 - _timerController.value);
+  }
 
   @override
   void initState() {
     super.initState();
 
-    // --- إعداد الأنيميشن ---
-    _animationController = AnimationController(
+    // --- Wave Animation Controller ---
+    _waveController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4), // يمكن تعديل سرعة الموجة
+      duration: const Duration(seconds: 5), // مدة دورة الموجة
     )..addListener(() {
-        if (mounted) {
+        if (mounted) { // تحقق قبل setState
           setState(() {
-            _waveOffset = _animationController.value * 2 * pi;
+            // حركة أبطأ للموجة
+            waveOffset += 0.02; // تقليل قيمة الزيادة
           });
         }
-      })
-      ..repeat(); // تكرار الأنيميشن
+      })..repeat();
 
-    // --- إعداد وبدء مؤقت البريك ---
-    _remainingTime = widget.breakDuration; // استخدام المدة الممررة
-    _startBreakTimer();
-    // --------------------------
-  }
+    // --- Timer Animation Controller ---
+    _timerController = AnimationController(
+        vsync: this,
+        duration: widget.duration // مدة الأنيميشن هي مدة البريك
+    )..addListener(() {
+       // إعادة بناء الواجهة لعرض الوقت المتبقي
+       if(mounted) setState(() {});
+    })..forward(); // ابدأ الأنيميشن فوراً
 
-  // --- بدء المؤقت التنازلي للبريك ---
-  void _startBreakTimer() {
-    _breakTimer?.cancel();
-    print("Starting break timer for: $_remainingTime");
-    _breakTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) { timer.cancel(); return; }
 
-      if (_remainingTime.inSeconds <= 0) {
-        timer.cancel();
-        print("Break finished. Popping screen.");
-        if (Navigator.canPop(context)) {
-           Navigator.pop(context); // العودة للشاشة السابقة
-        }
-      } else {
-        setState(() {
-          _remainingTime = _remainingTime - const Duration(seconds: 1);
-        });
+    // --- Timer to Pop Screen ---
+    _popTimer = Timer(widget.duration, () {
+      print("BreakScreen: Timer finished, popping.");
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
       }
     });
   }
 
   @override
   void dispose() {
-    _animationController.dispose(); // التخلص من controller الأنيميشن
-    _breakTimer?.cancel(); // التخلص من المؤقت
+    _waveController.dispose();
+    _timerController.dispose(); // التخلص من كنترولر المؤقت
+    _popTimer?.cancel(); // ألغِ مؤقت الإغلاق
     super.dispose();
   }
 
-   // --- دوال تنسيق الوقت (يمكن نقلها لملف utils) ---
-   String formatDuration(Duration duration) {
-      duration = duration.isNegative ? Duration.zero : duration;
-      String twoDigits(int n) => n.toString().padLeft(2, '0');
-      final minutes = twoDigits(duration.inMinutes.remainder(60));
-      final seconds = twoDigits(duration.inSeconds.remainder(60));
-      return '$minutes:$seconds'; // عرض دقائق:ثواني
+  // --- تنسيق الوقت المتبقي ---
+   String formatBreakDuration(Duration duration) {
+     duration = duration.isNegative ? Duration.zero : duration;
+     String twoDigits(int n) => n.toString().padLeft(2, '0');
+     // عرض الدقائق والثواني فقط للبريك
+     final minutes = twoDigits(duration.inMinutes.remainder(60));
+     final seconds = twoDigits(duration.inSeconds.remainder(60));
+     return '$minutes:$seconds';
    }
-   String _convertToArabicNumbers(String number) {
-      const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-      const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-      String result = number;
-      for (int i = 0; i < english.length; i++) { result = result.replaceAll(english[i], arabic[i]); }
-      return result;
-   }
+   // --- التحويل للأرقام العربية ---
+    String _convertToArabicNumbers(String number) {
+       const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+       const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+       String result = number;
+       for (int i = 0; i < english.length; i++) { result = result.replaceAll(english[i], arabic[i]); }
+       return result;
+    }
+
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          // خلفية الشاشة
-          Container(color: Colors.lightBlue[50]),
+    // اللون الأساسي للبريك
+    const breakColor = Color(0xff2C73D9);
 
-          // --- الموجة المتحركة في الخلفية ---
-          CustomPaint(
-            size: Size(MediaQuery.of(context).size.width, MediaQuery.of(context).size.height),
-            painter: WavePainter(_waveOffset), // استخدام قيمة الأنيميشن
-          ),
-
-          // --- محتوى شاشة البريك فوق الموجة ---
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                 const Text(
-                    "وقت الراحة",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 32, // خط أكبر
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xff1E4A8A), // لون أزرق أغمق
-                       shadows: [ Shadow(blurRadius: 1.0, color: Colors.black26, offset: Offset(1, 1)),]
-                    ),
-                  ),
-                  const SizedBox(height: 35),
-                  // --- عرض المؤقت ---
-                  Text(
-                     _convertToArabicNumbers(formatDuration(_remainingTime)),
-                     style: const TextStyle(
-                        fontSize: 70, // خط كبير جداً للمؤقت
-                        fontWeight: FontWeight.w700, // خط أثقل
-                        color: Colors.white,
-                        fontFamily: 'monospace', // خط مناسب للأرقام
-                         shadows: [ Shadow(blurRadius: 4.0, color: Colors.black54, offset: Offset(1, 2)),] // ظل أوضح
-                     ),
-                     textDirection: TextDirection.ltr, // لضمان عرض الأرقام صحيحاً
-                  ),
-                   const SizedBox(height: 15),
-                   Text("دقيقة : ثانية", style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16)),
-                  // ------------------
-                  const SizedBox(height: 50),
-                   Padding(
-                     padding: const EdgeInsets.symmetric(horizontal: 50.0),
-                     child: Text(
-                       "استرخِ قليلاً...", // نص أبسط
-                        style: TextStyle(fontSize: 18, color: Colors.white.withOpacity(0.95)),
-                        textAlign: TextAlign.center,
-                     ),
-                   ),
-              ],
+    return PopScope( // لمنع الإغلاق بالسحب للخلف (اختياري)
+      canPop: false, // لا تسمح بالإغلاق اليدوي
+      child: Scaffold(
+        body: Stack(
+          children: [
+            // خلفية بيضاء
+            Container(color: Colors.white),
+            // --- رسم الموجة ---
+            CustomPaint(
+              size: Size(MediaQuery.of(context).size.width, MediaQuery.of(context).size.height),
+              // أرسل waveOffset وتقدم المؤقت للتحكم في ارتفاع الموجة
+              painter: WavePainter(waveOffset, _timerController.value, breakColor),
             ),
-          ),
-        ],
+            // --- محتوى الشاشة (العنوان والمؤقت) ---
+            Positioned.fill( // اجعل العمود يملأ الشاشة
+              child: Column(
+                 mainAxisAlignment: MainAxisAlignment.center, // توسيط المحتوى رأسياً
+                 children: [
+                   // --- عنوان البريك ---
+                   const Text(
+                     "وقت الاستراحة", // تغيير العنوان
+                     textAlign: TextAlign.center,
+                     style: TextStyle( fontSize: 32, fontWeight: FontWeight.bold, color: breakColor, ),
+                   ),
+                   const SizedBox(height: 40), // مسافة أكبر
+                   // --- عرض المؤقت ---
+                   Text(
+                     _convertToArabicNumbers(formatBreakDuration(_remainingTime)),
+                     textAlign: TextAlign.center,
+                     style: const TextStyle( fontSize: 60, fontWeight: FontWeight.bold, color: breakColor, fontFamily: 'monospace'), // خط أكبر للمؤقت
+                     textDirection: TextDirection.ltr, // الأرقام دائماً LTR
+                   ),
+                    const SizedBox(height: 10),
+                    Text( "ثانية : دقيقة", style: TextStyle(color: breakColor.withOpacity(0.8), fontSize: 16), ),
+                    const SizedBox(height: 60), // مسافة إضافية
+                 ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// --- كلاس WavePainter (مع التعديلات السابقة) ---
+// --- كلاس رسم الموجة (مع تعديل بسيط لاستخدام تقدم المؤقت) ---
 class WavePainter extends CustomPainter {
   final double waveOffset;
-  WavePainter(this.waveOffset);
+  final double timerProgress; // قيمة بين 0.0 (البداية) و 1.0 (النهاية)
+  final Color waveColor;
+
+  WavePainter(this.waveOffset, this.timerProgress, this.waveColor);
 
   @override
   void paint(Canvas canvas, Size size) {
-    Paint paint = Paint()..color = const Color(0xff2C73D9).withOpacity(0.6);
+    Paint paint = Paint()..color = waveColor.withOpacity(0.6); // تقليل الشفافية قليلاً
+
     Path path = Path();
+    // ابدأ من أسفل اليسار
     path.moveTo(0, size.height);
+
+    // حساب الارتفاع الأساسي للموجة (تقل مع الوقت)
+    // تبدأ من حوالي 80% من الارتفاع وتنتهي عند 0
+    double baseHeight = size.height * (0.8 * (1.0 - timerProgress));
+
+    // رسم الموجة
     for (double x = 0; x <= size.width; x++) {
-      double sineValue = sin((x * 0.015) + waveOffset);
-      double y = size.height * 0.75 + (sineValue * 35);
+      // معادلة الموجة (يمكن تعديل التردد والسعة)
+      // sin(frequency * x + offset) * amplitude + base_height
+      double y = baseHeight + (sin((x * 0.015) + waveOffset) * 30); // تقليل السعة والتردد قليلاً
+      // تأكد أن y لا تتجاوز ارتفاع الشاشة
+      y = y.clamp(0.0, size.height);
       path.lineTo(x, y);
     }
-    path.lineTo(size.width, size.height); path.close();
+
+    // أغلق المسار بالوصول لأسفل اليمين ثم العودة لأسفل اليسار
+    path.lineTo(size.width, size.height);
+    path.close();
+
     canvas.drawPath(path, paint);
 
-    Paint paint2 = Paint()..color = const Color(0xff5AAFFF).withOpacity(0.4);
-    Path path2 = Path();
-    path2.moveTo(0, size.height);
-    for (double x = 0; x <= size.width; x++) {
-      double sineValue = sin((x * 0.02) + waveOffset + pi / 2);
-      double y = size.height * 0.80 + (sineValue * 45);
-      path2.lineTo(x, y);
-    }
-    path2.lineTo(size.width, size.height); path2.close();
-    canvas.drawPath(path2, paint2);
+     // --- رسم موجة ثانية بتأخير وشفافية مختلفة (اختياري) ---
+     Paint paint2 = Paint()..color = waveColor.withOpacity(0.3);
+     Path path2 = Path();
+     path2.moveTo(0, size.height);
+     double baseHeight2 = size.height * (0.83 * (1.0 - timerProgress)); // تبدأ أعلى قليلاً
+     for (double x = 0; x <= size.width; x++) {
+       double y = baseHeight2 + (sin((x * 0.012) + waveOffset * 0.8) * 35); // تردد وسعة مختلفان قليلاً
+       y = y.clamp(0.0, size.height);
+       path2.lineTo(x, y);
+     }
+     path2.lineTo(size.width, size.height);
+     path2.close();
+     canvas.drawPath(path2, paint2);
   }
 
   @override
-  bool shouldRepaint(WavePainter oldDelegate) => true;
+  bool shouldRepaint(WavePainter oldDelegate) => true; // أعد الرسم دائماً للأنيميشن
 }

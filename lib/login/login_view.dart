@@ -147,6 +147,7 @@ class _LoginViewState extends State<LoginView> {
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
+      backgroundColor:Colors.white,
       body: SingleChildScrollView(
         child: Center(
           child: Column(
@@ -154,7 +155,7 @@ class _LoginViewState extends State<LoginView> {
             children: [
               // --- الجزء العلوي (الشعار والعنوان) ---
               Container( width: double.infinity, alignment: Alignment.center, margin: EdgeInsets.only(top: screenHeight * 0.1),
-                child: Image.asset("assets/images/image-removebg-preview (5) 2.png", width: screenWidth * 0.5, fit: BoxFit.contain,),),
+                child: Image.asset("assets/images/logo.png", width: screenWidth * 0.5, fit: BoxFit.contain,),),
               const SizedBox(height: 10),
               const Text("تسجيل الدخول ", style: TextStyle(color: Color(0xFF2C73D9), fontSize: 22, fontWeight: FontWeight.bold,),),
               const SizedBox(height: 40),
@@ -221,10 +222,11 @@ class _LoginViewState extends State<LoginView> {
 
               // --- رابط إنشاء حساب جديد ---
               Row( mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Text( "لا تمتلك حساب؟", style: TextStyle( color: Color(0xFF4A4A4A), fontSize: 15,),),
-                const SizedBox(width: 5),
                 InkWell( onTap: () { Navigator.push( context, MaterialPageRoute( builder: (context) => RegistrationView()),); },
                   child: const Text( "أنشئ حساب جديد", style: TextStyle( color: Color(0xFF2C73D9), fontSize: 15, fontWeight: FontWeight.bold,),),),
+                const Text( "لا تمتلك حساب؟", style: TextStyle( color: Color(0xFF4A4A4A), fontSize: 15,),),
+                const SizedBox(width: 5),
+                
               ],),
               const SizedBox(height: 40),
             ],

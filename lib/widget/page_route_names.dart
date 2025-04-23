@@ -12,4 +12,6 @@ class PageRouteName {
   static const String session = "session";
   static const String breaak = "breaak";
   static const String starttest = "starttest";
+
+  static const String smartAssistant = 'smart-assistant';
 }

@@ -36,7 +36,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+    //final screenHeight = MediaQuery.of(context).size.height;
     return SafeArea(
       child: Scaffold(
         backgroundColor: Colors.white, // خلفية بيضاء للشاشة
@@ -50,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 // يظهر تدريجياً عند تفعيل animateLogo
                 duration: Duration(milliseconds: 1200),
                 child: Image.asset(
-                  'assets/images/WhatsApp Image 2025-03-11 at 7.15.10 PM.jpeg',
+                  'assets/images/logo.png',
                   // الصورة المستخدمة كشعار للتطبيق
                   width: screenWidth * 0.5,
                   fit: BoxFit.contain,

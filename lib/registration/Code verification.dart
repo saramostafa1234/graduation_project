@@ -238,6 +238,7 @@ class _CodeVerificationState extends State<CodeVerification> {
     // --- نهاية التعديل ---
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         centerTitle: true,

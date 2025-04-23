@@ -1,100 +1,102 @@
-// lib/widget/routes_generator.dart
 import 'package:flutter/material.dart';
 // لا نحتاج dart:async هنا
-// import 'dart:async';
 
 // --- استيراد الشاشات والملفات الضرورية ---
-// تأكد من صحة هذه المسارات في مشروعك
-import 'package:myfinalpro/screens/emotion.dart';
-import 'package:myfinalpro/screens/timetest.dart'; // StartTest
+// تأكد من صحة هذه المسارات في مشروعكimport 'package:myfinalpro/emotion/emotion_screen.dart'; 
+import 'package:myfinalpro/session/timetest.dart'; // StartTest
 import 'package:myfinalpro/widget/page_route_names.dart';
 import 'package:myfinalpro/widget/report.dart';        // ReportView
 import 'package:myfinalpro/login/login_view.dart';      // LoginView
 import 'package:myfinalpro/registration/registration.dart'; // RegistrationView
 import 'package:myfinalpro/screens/skills.dart';       // SkillsScreen
 import 'package:myfinalpro/screens/splash_screen.dart';  // SplashScreen
-// تأكد من أن هذا هو المسار الصحيح لملف شاشة البريك وأن الكلاس بداخله اسمه AnimatedWaveScreen
-import 'package:myfinalpro/session/break.dart';       // AnimatedWaveScreen (Break)
+// تأكد من أن هذا هو المسار الصحيح لملف شاشة البريك وأن الكلاس بداخله اسمه BreakScreen
+import 'package:myfinalpro/session/break.dart';      // <-- تعديل المسار والاسم إذا لزم الأمر
 import 'package:myfinalpro/session/session_details_screen.dart'; // <-- شاشة تفاصيل الجلسة
 import 'package:myfinalpro/widget/about_app.dart';      // About_App
 import 'package:myfinalpro/screens/assessment_screen.dart'; // AssessmentScreen
 import 'package:myfinalpro/widget/editaccount.dart';   // EditAccountScreen
-// import 'package:myfinalpro/screens/home_screen.dart'; // <-- غير مستخدم هنا، تم حذفه
+import 'package:myfinalpro/session/models/session_model.dart'; // <-- *** استيراد المودل ضروري هنا ***
+import 'package:myfinalpro/emotion/sequential_session_screen.dart';
+import 'package:myfinalpro/models/smart_assistant_screen.dart';
 
 class RoutesGenerator {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    print("Generating route for: ${settings.name} with arguments: ${settings.arguments}"); // للتشخيص
+    debugPrint("Generating route for: ${settings.name} with arguments: ${settings.arguments}"); // استخدام debugPrint
 
     switch (settings.name) {
       case PageRouteName.initial:
-        return MaterialPageRoute( builder: (_) => SplashScreen(), settings: settings, ); // إزالة const
+        return MaterialPageRoute( builder: (_) => SplashScreen(), settings: settings );
       case PageRouteName.login:
-        return MaterialPageRoute( builder: (_) => LoginView(), settings: settings, ); // إزالة const
+        return MaterialPageRoute( builder: (_) => const LoginView(), settings: settings );
       case PageRouteName.registration:
-        return MaterialPageRoute( builder: (_) => RegistrationView(), settings: settings, ); // إزالة const
+        return MaterialPageRoute( builder: (_) => const RegistrationView(), settings: settings );
       case PageRouteName.skills:
-        return MaterialPageRoute( builder: (_) => SkillsScreen(), settings: settings, ); // إضافة const إذا أمكن
-      case PageRouteName.emotions:
-        return MaterialPageRoute( builder: (_) => EmotionScreen(), settings: settings, ); // إضافة const إذا أمكن
+        return MaterialPageRoute( builder: (_) => SkillsScreen(), settings: settings ); // قد تحتاج لـ const
+      case PageRouteName.emotions: // <-- تأكد أن هذا الاسم موجود في PageRouteName
+        return MaterialPageRoute( builder: (_) => const TrainingSessionsScreen(), settings: settings );
       case PageRouteName.editProfile:
-        return MaterialPageRoute( builder: (_) => EditAccountScreen(), settings: settings, ); // إضافة const إذا أمكن
+        return MaterialPageRoute( builder: (_) => const EditAccountScreen(), settings: settings );
       case PageRouteName.aboutApp:
-        return MaterialPageRoute( builder: (_) => const About_App(), settings: settings, );
+        return MaterialPageRoute( builder: (_) => const About_App(), settings: settings );
       case PageRouteName.reports:
-        return MaterialPageRoute( builder: (_) => ReportView(), settings: settings, ); // إضافة const إذا أمكن
-      case PageRouteName.starttest:
-        return MaterialPageRoute( builder: (_) => StartTest(), settings: settings, ); // إضافة const إذا أمكن
+        return MaterialPageRoute( builder: (_) => const ReportView(), settings: settings );
+      case PageRouteName.smartAssistant:
+        return MaterialPageRoute(builder: (_) => const ChatScreen());
+      case PageRouteName.starttest: // <-- تأكد أن هذا الاسم موجود في PageRouteName
+        return MaterialPageRoute( builder: (_) => const StartTest(), settings: settings );
 
-      case PageRouteName.chatPot: // شاشة التقييم
+      // --- إضافة مسارات الكويز ---
+      /*case PageRouteName.quizManager: // <<--- تأكد من إضافة هذا الثابت في PageRouteName
+        return MaterialPageRoute( builder: (_) => const QuizManagerScreen(), settings: settings );
+      case PageRouteName.quizEnd:     // <<--- تأكد من إضافة هذا الثابت في PageRouteName
+        return MaterialPageRoute( builder: (_) => EndTestScreen(), settings: settings ); // قد لا تحتاج لـ const إذا كانت stateful
+      // --- نهاية إضافة مسارات الكويز ---*/
+
+      case PageRouteName.chatPot:
         final String? tokenArgument = settings.arguments as String?;
         if (tokenArgument != null && tokenArgument.isNotEmpty) {
-          return MaterialPageRoute( builder: (_) => AssessmentScreen(jwtToken: tokenArgument), settings: settings, );
+          return MaterialPageRoute( builder: (_) => AssessmentScreen(jwtToken: tokenArgument), settings: settings );
         } else {
-          print("RouteGenerator Error: Missing jwtToken for AssessmentScreen.");
+          debugPrint("RouteGenerator Error: Missing jwtToken for AssessmentScreen.");
           return _errorRoute(settings, "Token not provided for assessment");
         }
 
-      case PageRouteName.session: // شاشة تفاصيل الجلسة التدريبية
+      case PageRouteName.session:
         final args = settings.arguments;
-        if (args is Map<String, dynamic> && args.containsKey('sessionData') && args.containsKey('jwtToken')) {
-          final Map<String, dynamic> sessionData = args['sessionData'];
-          final String jwtToken = args['jwtToken'];
-          // تأكد من استيراد SessionDetailsScreen
-          return MaterialPageRoute(
-            builder: (_) => SessionDetailsScreen( sessionData: sessionData, jwtToken: jwtToken,), settings: settings,);
-        } else {
-          print("RouteGenerator Error: Missing or invalid arguments for SessionDetailsScreen. Args: $args");
-          return _errorRoute(settings, "Session data missing");
-        }
+        if (args is Map<String, dynamic> && args.containsKey('initialSession') && args.containsKey('jwtToken')) {
+          final dynamic sessionArg = args['initialSession'];
+          final String jwtToken = args['jwtToken'] as String? ?? '';
 
-    // ******** تم تصحيح هذا الجزء ********
-      case PageRouteName.breaak: // شاشة البريك
-      // توقع أن الوسيط هو Duration
+          Session? sessionModel;
+          if (sessionArg is Map<String, dynamic>) {
+             try { sessionModel = Session.fromJson(sessionArg); }
+             catch (e) { debugPrint("RouteGenerator Error: Failed to parse sessionData Map into Session object: $e"); return _errorRoute(settings, "Invalid session data format"); }
+          } else if (sessionArg is Session) { sessionModel = sessionArg; }
+
+          if (sessionModel != null && jwtToken.isNotEmpty) {
+             return MaterialPageRoute( builder: (_) => SessionDetailsScreen( initialSession: sessionModel!, jwtToken: jwtToken ), settings: settings );
+          } else { debugPrint("RouteGenerator Error: Failed to obtain valid Session object or token."); return _errorRoute(settings, "Invalid session data or token"); }
+        } else { debugPrint("RouteGenerator Error: Missing or invalid arguments map for SessionDetailsScreen."); return _errorRoute(settings, "Session arguments missing or invalid"); }
+
+      case PageRouteName.breaak: // <-- تأكد أن هذا الاسم موجود في PageRouteName
         final Duration? breakDurationArg = settings.arguments as Duration?;
         if (breakDurationArg != null) {
-          // تأكد من استيراد AnimatedWaveScreen من المسار الصحيح
-          // تأكد أن constructor في AnimatedWaveScreen يقبل breakDuration
-          return MaterialPageRoute(
-            builder: (_) => AnimatedWaveScreen(breakDuration: breakDurationArg), // <-- تمرير breakDuration فقط
-            settings: settings,
-          );
+          return MaterialPageRoute( builder: (_) => BreakScreen(duration: breakDurationArg), settings: settings );
         } else {
-          print("RouteGenerator Error: Missing breakDuration for AnimatedWaveScreen.");
+          debugPrint("RouteGenerator Error: Missing breakDuration for BreakScreen.");
           return _errorRoute(settings, "Break duration missing");
         }
-    // *********************************
 
       default:
-      // مسار غير معروف، اذهب للشاشة الابتدائية
-        return MaterialPageRoute( builder: (_) => SplashScreen(), settings: settings, ); // إزالة const
+        debugPrint("Route Error: Route ${settings.name} not found. Navigating to Splash.");
+        return MaterialPageRoute( builder: (_) => SplashScreen(), settings: settings );
     }
   }
 
-  // --- دالة مساعدة لعرض شاشة خطأ ---
   static Route<dynamic> _errorRoute(RouteSettings settings, String error) {
-    print("Route Error: $error for route ${settings.name}");
+    debugPrint("Route Error: $error for route ${settings.name}"); // استخدام debugPrint
     return MaterialPageRoute(
-      // استخدام const هنا
       builder: (_) => Scaffold(
         appBar: AppBar(title: const Text('خطأ في التوجيه')),
         body: Center(child: Text('حدث خطأ أثناء الانتقال.\n($error)')),
