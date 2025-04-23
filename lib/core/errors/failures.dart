@@ -50,4 +50,3 @@ class NetworkFailure extends Failure {
 class InvalidInputFailure extends Failure {
   const InvalidInputFailure(String message) : super(message);
 }
-

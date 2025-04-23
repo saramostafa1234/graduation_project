@@ -43,6 +43,7 @@ dependencies:
   badges: ^3.1.2
   confetti: ^0.7.0
   http: ^1.1.0  # Use the latest version or the one compatible with your Flutter
+  http_parser: ^4.0.2
   flutter_bloc: ^8.1.3
   image_picker: ^1.0.7
   equatable: ^2.0.5
@@ -86,15 +87,71 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/
+    # ------------ مجلدات فهم (بالأسماء العربية) --------------
+    # --- حزين ---
+    - assets/img/فهم/حزين/حزين-train/  # مجلد التدريب
+    - assets/img/فهم/حزين/حزين-test/     # مجلد الاختبار الرئيسي
+    - assets/img/فهم/حزين/حزين-test/يوم/  # مجلد يوم داخل الاختبار
+    - assets/img/فهم/حزين/حزين-test/شهر/  # مجلد شهر داخل الاختبار
+    - assets/img/فهم/حزين/حزين-test/3 شهور/ # <-- تم تعديل هذا
+
+    # --- فرحان ---
+    - assets/img/فهم/فرحان/فرحان-train/
+    - assets/img/فهم/فرحان/فرحان-test/
+    - assets/img/فهم/فرحان/فرحان-test/يوم/
+    - assets/img/فهم/فرحان/فرحان-test/شهر/
+    - assets/img/فهم/فرحان/فرحان-test/3 شهور/ # <-- تم تعديل هذا
+
+    # --- غضبان ---
+    - assets/img/فهم/غضبان/غضبان-train/
+    - assets/img/فهم/غضبان/غضبان-test/
+    - assets/img/فهم/غضبان/غضبان-test/يوم/
+    - assets/img/فهم/غضبان/غضبان-test/شهر/
+    - assets/img/فهم/غضبان/غضبان-test/3 شهور/ # <-- تم تعديل هذا
+
+
+    # --- خايف ---
+    - assets/img/فهم/خايف/خايف-train/
+    - assets/img/فهم/خايف/خايف-test/
+    - assets/img/فهم/خايف/خايف-test/يوم/
+    - assets/img/فهم/خايف/خايف-test/شهر/
+    - assets/img/فهم/خايف/خايف-test/3 شهور/ # <-- تم تعديل هذا
+
+    # --- خجول ---
+    - assets/img/فهم/خجول/خجول-train/
+    - assets/img/فهم/خجول/خجول-test/
+    - assets/img/فهم/خجول/خجول-test/يوم/
+    - assets/img/فهم/خجول/خجول-test/شهر/
+    - assets/img/فهم/خجول/خجول-test/3 شهور/ # <-- تم تعديل هذا
+
+    # --- مفكر ---
+    - assets/img/فهم/مفكر/مفكر-train/
+    - assets/img/فهم/مفكر/مفكر-test/
+    - assets/img/فهم/مفكر/مفكر-test/يوم/
+    - assets/img/فهم/مفكر/مفكر-test/شهر/
+    - assets/img/فهم/مفكر/مفكر-test/3 شهور/ # <-- تم تعديل هذا
+
+    # --- مندهش ---
+    - assets/img/فهم/مندهش/مندهش-train/
+    - assets/img/فهم/مندهش/مندهش-test/
+    - assets/img/فهم/مندهش/مندهش-test/يوم/
+    - assets/img/فهم/مندهش/مندهش-test/شهر/
+    - assets/img/فهم/مندهش/مندهش-test/3 شهور/ # <-- تم تعديل هذا
+    - assets/objects/
+
+    # ------------ مجلدات أخرى رئيسية إذا وجدت بنفس الطريقة ---
+    # مثال:
+    # - assets/img/مهارات/...
+
+    # ------------ مجلد الصور العام (إذا كان لا يزال مستخدماً) ---
+    - assets/images/
+
+   
+    
+    
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

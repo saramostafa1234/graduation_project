@@ -172,6 +172,7 @@ class _CreateAccountState extends State<CreateAccount> {
     double screenWidth = MediaQuery.of(context).size.width;
     double screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
@@ -189,7 +190,7 @@ class _CreateAccountState extends State<CreateAccount> {
                   Expanded(
                     child: Center(
                       child: Image.asset(
-                        "assets/images/image-removebg-preview (5) 2.png",
+                        "assets/images/logo.png",
                         width: screenWidth * 0.4,
                         height: screenHeight * 0.2,
                         fit: BoxFit.contain,

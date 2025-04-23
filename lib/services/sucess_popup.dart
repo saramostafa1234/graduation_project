@@ -1,57 +1,64 @@
-import 'dart:math'; // ✅ إضافة هذا السطر لاستخدام pi
-
+// lib/services/sucess_popup.dart
+import 'dart:math';
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 
-void showSuccessPopup(BuildContext context, Widget nextScreen) {
-  ConfettiController confettiController =
-      ConfettiController(duration: Duration(days: 1)); // ✅ استمرار التأثير
+// التعريف لا يزال يقبل 3 وسائط
+void showSuccessPopup(
+    BuildContext context,
+    ConfettiController confettiController,
+    VoidCallback onNext
+    ) {
+
+  // --- *** التعديل هنا: استخدام try-catch بدلاً من isDisposed *** ---
+  try {
+    // محاولة تشغيل التأثير
+    confettiController.play();
+    print("Playing confetti from showSuccessPopup");
+  } catch (e) {
+    // إذا حدث خطأ (غالباً لأنه تم التخلص منه)، اطبع تحذيرًا وتجاهله
+    print("Warning: Could not play confetti (controller might be disposed): $e");
+  }
+  // --- *** نهاية التعديل *** ---
+
 
   showGeneralDialog(
     context: context,
     barrierDismissible: false,
-    barrierLabel: '',
+    barrierLabel: 'Success Popup',
     transitionDuration: const Duration(milliseconds: 300),
     pageBuilder: (context, animation, secondaryAnimation) {
-      confettiController.play(); // ✅ تشغيل التأثير عند ظهور النافذة
-
       return ScaleTransition(
         scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
         child: AlertDialog(
           backgroundColor: Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          contentPadding: EdgeInsets.zero,
           content: Stack(
             alignment: Alignment.center,
             children: [
-              // ✅ تأثير القصاصات الورقية
-              ConfettiWidget(
-                confettiController: confettiController,
-                blastDirection: -pi / 2,
-                // ✅ سقوط الورق من الأعلى
-                shouldLoop: true,
-                // ✅ استمرار التأثير حتى يضغط المستخدم
-                colors: [
-                  Colors.red,
-                  Colors.green,
-                  Color(0xff2C73D9),
-                  Colors.yellow,
-                  Colors.purple
-                ],
-                // ✅ ألوان متعددة
-                gravity: 0.3,
-                numberOfParticles: 20,
-                emissionFrequency: 0.05,
-
-                // ✅ جعل الورق مربعات
-                createParticlePath: (size) {
-                  return Path()..addRect(Rect.fromLTWH(0, 0, 10, 10));
-                },
+              Align(
+                alignment: Alignment.topCenter,
+                child: ConfettiWidget(
+                  confettiController: confettiController,
+                  blastDirection: pi / 2,
+                  shouldLoop: false,
+                  colors: const [ Colors.green, Colors.blue, Colors.pink, Colors.orange, Colors.purple, Colors.yellow ],
+                  gravity: 0.1,
+                  numberOfParticles: 25,
+                  emissionFrequency: 0.05,
+                  createParticlePath: (size) {
+                    final path = Path();
+                    path.addRect(Rect.fromLTWH(-5, -5, 10, 10));
+                    return path;
+                  },
+                  particleDrag: 0.05,
+                  maxBlastForce: 8,
+                  minBlastForce: 4,
+                ),
               ),
-
-              // ✅ محتوى النافذة
               SizedBox(
-                height: 250,
+                height: 260,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -64,7 +71,7 @@ void showSuccessPopup(BuildContext context, Widget nextScreen) {
                           color: Color(0xff2C73D9)),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 40),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xff2C73D9),
@@ -72,16 +79,12 @@ void showSuccessPopup(BuildContext context, Widget nextScreen) {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                         minimumSize: const Size(180, 50),
+                        elevation: 5,
                       ),
                       onPressed: () {
-                        confettiController.stop(); // ✅ إيقاف التأثير عند الضغط
+                        print("Popup 'Next' button pressed.");
                         Navigator.of(context).pop();
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => nextScreen),
-                          );
-                        });
+                        onNext();
                       },
                       child: const Text('التالي',
                           style: TextStyle(
@@ -98,8 +101,25 @@ void showSuccessPopup(BuildContext context, Widget nextScreen) {
     transitionBuilder: (context, animation, secondaryAnimation, child) {
       return FadeTransition(
         opacity: animation,
-        child: child,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.9, end: 1.0).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+          child: child,
+        ),
       );
     },
-  );
+  ).whenComplete(() {
+    print("Success Popup closed (whenComplete).");
+    // --- تأكيد إضافي: محاولة إيقاف الكونترولر هنا قد تكون آمنة ---
+    // هذا سيوقف الانفجار إذا كان لا يزال يعمل عند إغلاق البوب أب بسرعة
+    try {
+      if (confettiController.state == ConfettiControllerState.playing) {
+        confettiController.stop();
+        print("Stopped confetti on popup close.");
+      }
+    } catch (e) {
+      // تجاهل الخطأ إذا كان قد تم التخلص منه بالفعل
+      print("Couldn't stop confetti on popup close (already disposed?).");
+    }
+  });
 }

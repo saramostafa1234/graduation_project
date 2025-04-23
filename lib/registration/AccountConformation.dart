@@ -138,6 +138,7 @@ class _AccountConformationState extends State<AccountConformation> {
     bool canUsePhone = widget.phone != null && widget.phone!.isNotEmpty;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         centerTitle: true,

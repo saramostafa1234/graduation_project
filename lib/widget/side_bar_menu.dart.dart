@@ -8,9 +8,10 @@ import 'package:myfinalpro/widget/about_app.dart';
 import 'package:myfinalpro/screens/assessment_screen.dart';
 import 'package:myfinalpro/widget/editaccount.dart';
 import 'package:myfinalpro/widget/report.dart';
-import 'package:myfinalpro/session/session_details_screen.dart';
-import 'package:myfinalpro/login/login_view.dart';
+// import 'package:myfinalpro/session/session_details_screen.dart'; // غير مستخدم مباشرة هنا
+import 'package:myfinalpro/login/login_view.dart'; // <-- استيراد شاشة تسجيل الدخول
 import 'package:myfinalpro/widget/page_route_names.dart';
+import 'package:myfinalpro/models/smart_assistant_screen.dart';
 
 class SideBarMenuTest extends StatefulWidget {
   const SideBarMenuTest({super.key});
@@ -23,7 +24,7 @@ class _SideBarMenuTestState extends State<SideBarMenuTest> {
   String _userName = "جاري التحميل...";
   String _userEmail = "";
   String? _jwtToken;
-  String? _userImageUrl; // لتخزين رابط الصورة
+  String? _userImageUrl;
 
   @override
   void initState() {
@@ -32,16 +33,15 @@ class _SideBarMenuTestState extends State<SideBarMenuTest> {
   }
 
   Future<void> _loadUserData() async {
+    // ... (نفس الكود السابق)
     await Future.delayed(Duration.zero);
     if (!mounted) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      // --- قراءة البيانات بالمفاتيح الصحيحة ---
       final name = prefs.getString('user_name');
       final email = prefs.getString('user_email');
       final token = prefs.getString('auth_token');
-      final imageUrl = prefs.getString('user_image_url'); // <-- قراءة رابط الصورة
-      // ---------------------------------------
+      final imageUrl = prefs.getString('user_image_url');
 
       print("Sidebar: Read from Prefs - Name: $name, Email: $email, ImageUrl: $imageUrl, Token: ${token != null}");
 
@@ -50,7 +50,7 @@ class _SideBarMenuTestState extends State<SideBarMenuTest> {
           _userName = name ?? "اسم المستخدم";
           _userEmail = email ?? "البريد الإلكتروني";
           _jwtToken = token;
-          _userImageUrl = imageUrl; // <-- تخزين الرابط في الحالة
+          _userImageUrl = imageUrl;
         });
       }
     } catch (e) {
@@ -59,8 +59,64 @@ class _SideBarMenuTestState extends State<SideBarMenuTest> {
     }
   }
 
-  Future<void> _navigateToAssessment() async { /* ... نفس الكود ... */ }
-  Future<void> _logout() async { /* ... نفس الكود ... */ }
+  // دالة الانتقال للمساعد الذكي (افترض أنها موجودة وصحيحة)
+  Future<void> _navigateToAssessment() async {
+     if (_jwtToken != null) {
+      if (Navigator.canPop(context)) Navigator.pop(context); // أغلق الـ Drawer أولاً
+      // انتظر قليلاً قبل الانتقال لضمان إغلاق الـ Drawer بسلاسة
+      await Future.delayed(const Duration(milliseconds: 150));
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => AssessmentScreen(jwtToken: _jwtToken!)),
+      );
+    } else {
+      // يمكنك عرض رسالة خطأ إذا لم يتم العثور على التوكن
+      print("Sidebar: Cannot navigate to Assessment, token is null.");
+       if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text('خطأ: لم يتم العثور على معلومات المستخدم.')),
+         );
+       }
+    }
+  }
+
+  // --- دالة تسجيل الخروج المعدلة ---
+  Future<void> _logout() async {
+    try {
+      print("Sidebar: Initiating logout...");
+      final prefs = await SharedPreferences.getInstance();
+
+      // 1. مسح جميع بيانات المستخدم والتوكن المحفوظة
+      await prefs.remove('auth_token');
+      await prefs.remove('user_name');
+      await prefs.remove('user_email');
+      await prefs.remove('user_image_url');
+      await prefs.remove('saved_email'); // مسح الإيميل المحفوظ أيضًا
+
+      print("Sidebar: User data cleared from SharedPreferences.");
+
+      // 2. التحقق من أن الويدجت ما زال موجودًا قبل استخدام context
+      if (!mounted) return;
+
+      print("Sidebar: Navigating to LoginView and removing previous routes.");
+      // 3. الانتقال إلى شاشة تسجيل الدخول وإزالة جميع الشاشات السابقة
+      //    استخدام (Route<dynamic> route) => false يضمن إزالة كل المسار السابق.
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginView()), // الانتقال لشاشة تسجيل الدخول
+        (Route<dynamic> route) => false, // هذا الشرط يزيل كل الشاشات السابقة
+      );
+    } catch (e) {
+      print("Error during logout: $e");
+      // يمكنك عرض رسالة للمستخدم في حالة حدوث خطأ أثناء عملية تسجيل الخروج
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('حدث خطأ أثناء تسجيل الخروج.')),
+        );
+      }
+    }
+  }
+  // ------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -72,20 +128,19 @@ class _SideBarMenuTestState extends State<SideBarMenuTest> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
+            // --- DrawerHeader ---
             DrawerHeader(
               margin: EdgeInsets.zero, padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration( color: Colors.white, border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))) ),
               child: Row( crossAxisAlignment: CrossAxisAlignment.center, children: [
                   // --- الصورة وأيقونة التعديل ---
                   Stack( alignment: Alignment.bottomLeft, children: [
-                      // ******** تعديل عرض الصورة ********
                       CircleAvatar( radius: screenWidth * 0.095, backgroundColor: Colors.grey.shade200,
                         backgroundImage: (_userImageUrl != null && _userImageUrl!.isNotEmpty)
                             ? NetworkImage(_userImageUrl!) as ImageProvider
-                            : const AssetImage("assets/images/default_avatar.png"), // تأكدي من وجود الصورة الافتراضية
-                        onBackgroundImageError: (_, __) => print("Drawer Image Error"),
+                            : const AssetImage("assets/images/default_avatar.png"),
+                        onBackgroundImageError: (_, __) => print("Drawer Image Error"), // التعامل مع خطأ تحميل الصورة
                       ),
-                      // **********************************
                        Positioned( bottom: 0, left: 0, child: Material( color: Colors.transparent, shape: const CircleBorder(), clipBehavior: Clip.antiAlias,
                            child: InkWell( borderRadius: BorderRadius.circular(screenWidth * 0.05), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => EditAccountScreen())); },
                               child: Container( padding: const EdgeInsets.all(5), decoration: BoxDecoration( shape: BoxShape.circle, color: Colors.white, border: Border.all(color: Colors.grey.shade300, width: 1) ),
@@ -100,19 +155,25 @@ class _SideBarMenuTestState extends State<SideBarMenuTest> {
             // --- عناصر القائمة ---
             _buildDrawerItem(icon: Icons.person_outline, text: "تعديل الملف الشخصي", onTap: () { Navigator.push(context, MaterialPageRoute(builder: (context) => EditAccountScreen())); }),
             _buildDrawerItem(icon: Icons.home_outlined, text: "الصفحة الرئيسية", onTap: () { Navigator.pushNamedAndRemoveUntil(context, PageRouteName.home, (route) => false); }),
-           // _buildDrawerItem(icon: Icons.notifications_none, text: "الإشعارات", onTap: () { Navigator.push(context, MaterialPageRoute(builder: (context) => SessionView())); }),
             _buildDrawerItem(icon: Icons.bar_chart_outlined, text: "التقارير", onTap: () { Navigator.push(context, MaterialPageRoute(builder: (context) => ReportView())); }),
-            _buildDrawerItem(icon: Icons.smart_toy_outlined, text: "المساعد الذكي", onTap: _navigateToAssessment),
+            _buildDrawerItem(icon: Icons.smart_toy_outlined, text: "المساعد الذكي", onTap: () {
+              Navigator.pushNamed(context, PageRouteName.smartAssistant);
+            }), // استخدم الدالة المنفصلة
             _buildDrawerItem(icon: Icons.info_outline, text: "حول التطبيق", onTap: () { Navigator.push(context, MaterialPageRoute(builder: (context) => const About_App())); }),
             const Divider(height: 15, thickness: 0.8, indent: 16, endIndent: 16),
-            _buildDrawerItem(icon: Icons.logout, text: "تسجيل الخروج", onTap: _logout, color: Colors.redAccent),
+            _buildDrawerItem(
+              icon: Icons.logout,
+              text: "تسجيل الخروج",
+              onTap: _logout, // <-- استدعاء الدالة المعدلة هنا
+              color: Colors.redAccent // لون مميز لتسجيل الخروج
+            ),
           ],
         ),
       ),
     );
   }
 
-  // --- دالة مساعدة لبناء عناصر القائمة ---
+  // --- دالة مساعدة لبناء عناصر القائمة (نفس الكود السابق) ---
   Widget _buildDrawerItem({required IconData icon, required String text, required VoidCallback onTap, Color? color}) {
      final itemColor = color ?? const Color(0xFF2C73D9);
     return ListTile(
@@ -120,7 +181,9 @@ class _SideBarMenuTestState extends State<SideBarMenuTest> {
       title: Text(text, style: TextStyle(fontSize: 16, color: itemColor)),
       trailing: Icon(Icons.keyboard_arrow_left, color: itemColor.withOpacity(0.6)),
       onTap: () {
+         // أغلق الـ Drawer أولاً إذا كان مفتوحًا
          if (Navigator.canPop(context)) Navigator.pop(context);
+         // انتظر قليلاً قبل تنفيذ الـ onTap لضمان إغلاق الـ Drawer
          Future.delayed(const Duration(milliseconds: 150), onTap);
       },
       dense: true,
@@ -128,4 +191,4 @@ class _SideBarMenuTestState extends State<SideBarMenuTest> {
     );
   }
 
-} // نهاية الكلاس
+}
