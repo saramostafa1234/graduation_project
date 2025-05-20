@@ -19,6 +19,7 @@ class _RegistrationViewState extends State<RegistrationView> {
 
   // Controllers for form fields
   final TextEditingController _nameController = TextEditingController();
+  DateTime? _selectedDate;
   final TextEditingController _birthDateController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController =
@@ -62,7 +63,7 @@ class _RegistrationViewState extends State<RegistrationView> {
         'surname': _usernameController.text.trim(),
         // Assuming username maps to surname
         'email': _emailController.text.trim(),
-        'birthDate': _birthDateController.text.trim(),
+      'birthDate': _selectedDate?.toUtc().toIso8601String(),
         // Pass as string (YYYY-MM-DD format preferred)
         'password': _passwordController.text,
         // doctor_ID will be added in the next step
@@ -112,7 +113,7 @@ class _RegistrationViewState extends State<RegistrationView> {
                     Expanded(
                       child: Center(
                         child: Image.asset(
-                          "assets/images/image-removebg-preview (5) 2.png",
+                          "assets/images/logo.png",
                           width: screenWidth * 0.4,
                           height: screenHeight * 0.2,
                           fit: BoxFit.contain,
@@ -164,7 +165,7 @@ class _RegistrationViewState extends State<RegistrationView> {
                           height: screenWidth * 0.06,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.blue, width: 2),
+                            border: Border.all(color: Color(0xFF2C73D9), width: 2),
                           ),
                         ),
                         Container(
@@ -172,7 +173,7 @@ class _RegistrationViewState extends State<RegistrationView> {
                           height: screenWidth * 0.023,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.blue,
+                            color: Color(0xFF2C73D9),
                           ),
                         ),
                       ],
@@ -196,21 +197,26 @@ class _RegistrationViewState extends State<RegistrationView> {
                 SizedBox(height: screenHeight * 0.02),
 
                 // --- Birth Date Field with Date Picker ---
-                CustomTextField(
-                  hintText: "ادخل تاريخ ميلاد الطفل (YYYY-MM-DD)",
-                  obscureText: false,
-                  controller: _birthDateController,
-                  onChanged: (value) {},
-                  keyboardType: TextInputType.datetime,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'يرجى إدخال تاريخ الميلاد';
-                    }
-                    // Optional: Add more specific date format validation if needed
-                    return null;
-                  },
-                  suffixIcon: Icons.calendar_today,
+
+                GestureDetector(
+                  onTap: () => _pickDate(context),
+                  child: AbsorbPointer(
+                    child: CustomTextField(
+                      hintText: "ادخل تاريخ ميلاد الطفل ",
+                      obscureText: false,
+                      controller: _birthDateController,
+                      keyboardType: TextInputType.datetime,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'يرجى إدخال تاريخ الميلاد';
+                        }
+                        return null;
+                      },
+                      suffixIcon: Icons.calendar_today,
+                    ),
+                  ),
                 ),
+
                 // ---------------------------------------
 
                 SizedBox(height: screenHeight * 0.02),
@@ -313,7 +319,7 @@ class _RegistrationViewState extends State<RegistrationView> {
                       " هل لديك حساب بالفعل ؟ ",
                       style: TextStyle(
                         color: Color(0xFF4A4A4A),
-                        fontSize: 19,
+                        fontSize: 15,
                       ),
                     ),
                   ],
@@ -326,6 +332,25 @@ class _RegistrationViewState extends State<RegistrationView> {
       ),
     );
   }
+  void _pickDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        _birthDateController.text = picked.toIso8601String().split('T')[0]; // YYYY-MM-DD
+      });
+
+      // ✅ طباعة التاريخ بالصيغة المطلوبة
+      final birthDateIso = _selectedDate?.toUtc().toIso8601String();
+      print('birthDate: $birthDateIso'); // Example: 2025-04-24T19:40:26.978Z
+    }
+  }
+
 
   @override
   void dispose() {

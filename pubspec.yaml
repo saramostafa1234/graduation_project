@@ -1,48 +1,28 @@
 name: myfinalpro
 description: "A new Flutter project."
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: 'none'
 
-# The following defines the version and build number for your application.
-# A version number is three numbers separated by dots, like 1.2.43
-# followed by an optional build number separated by a +.
-# Both the version and the builder number may be overridden in flutter
-# build by specifying --build-name and --build-number, respectively.
-# In Android, build-name is used as versionName while build-number used as versionCode.
-# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
-# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
-# Read more about iOS versioning at
-# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-# In Windows, build-name is used as the major, minor, and patch parts
-# of the product and file versions while build-number is used as the build suffix.
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.5.4
+  sdk: '>=3.3.0 <4.0.0' # Suggested change: More compatible SDK range
 
-# Dependencies specify other packages that your package needs in order to work.
-# To automatically upgrade your package dependencies to the latest versions
-# consider running `flutter pub upgrade --major-versions`. Alternatively,
-# dependencies can be manually updated by changing the version numbers below to
-# the latest version available on pub.dev. To see which dependencies have newer
-# versions available, run `flutter pub outdated`.
 dependencies:
   flutter:
     sdk: flutter
-  flutter_localizations:
+  flutter_localizations: # Added for localization, common to have
     sdk: flutter
-  intl: ^0.19.0 
+  intl: ^0.19.0
 
+  video_player: ^2.8.2
   font_awesome_flutter: ^10.6.0
   smooth_page_indicator: ^1.1.0
   flutter_native_splash: ^2.3.2
   animated_splash_screen: ^1.3.0
   shared_preferences: ^2.2.2
-  
   badges: ^3.1.2
   confetti: ^0.7.0
-  http: ^1.1.0  # Use the latest version or the one compatible with your Flutter
+  http: ^1.1.0
   http_parser: ^4.0.2
   flutter_bloc: ^8.1.3
   image_picker: ^1.0.7
@@ -51,121 +31,90 @@ dependencies:
   dartz: ^0.10.1
   dio: ^5.3.3
   get_it: ^7.6.4
-  flutter_secure_storage: ^9.0.0 # أو أحدث إصدار
-
-
-  
-    
-
-
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
+  flutter_secure_storage: ^9.0.0
+  pdf: ^3.10.8 # This was already correctly present
+  share_plus: ^9.0.0
+  path_provider: ^2.1.3
   cupertino_icons: ^1.0.8
 
-
-
-flutter_native_splash:
-  color: "#FFFFFF" # لون الخلفية (يمكنك تغييره)
-  image: assets/image-removebg-preview (5) 2.png # مسار اللوجو
-  android: true
-  ios: true
 dev_dependencies:
   flutter_test:
     sdk: flutter
   build_runner: ^2.4.6
   json_serializable: ^6.7.1
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
+  flutter_launcher_icons: ^0.13.1
   flutter_lints: ^4.0.0
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
 
-# The following section is specific to Flutter packages.
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/image-removebg-preview (5) 2.png # Make sure this path is correct
+  android: true
+  ios: true
+
 flutter:
   uses-material-design: true
 
   assets:
-    # ------------ مجلدات فهم (بالأسماء العربية) --------------
-    # --- حزين ---
-    - assets/img/فهم/حزين/حزين-train/  # مجلد التدريب
-    - assets/img/فهم/حزين/حزين-test/     # مجلد الاختبار الرئيسي
-    - assets/img/فهم/حزين/حزين-test/يوم/  # مجلد يوم داخل الاختبار
-    - assets/img/فهم/حزين/حزين-test/شهر/  # مجلد شهر داخل الاختبار
-    - assets/img/فهم/حزين/حزين-test/3 شهور/ # <-- تم تعديل هذا
-
-    # --- فرحان ---
+    - assets/img/فهم/حزين/حزين-train/
+    - assets/img/فهم/حزين/حزين-test/
+    - assets/img/فهم/حزين/حزين-test/يوم/
+    - assets/img/فهم/حزين/حزين-test/شهر/
+    - assets/img/فهم/حزين/حزين-test/3 شهور/
     - assets/img/فهم/فرحان/فرحان-train/
     - assets/img/فهم/فرحان/فرحان-test/
     - assets/img/فهم/فرحان/فرحان-test/يوم/
     - assets/img/فهم/فرحان/فرحان-test/شهر/
-    - assets/img/فهم/فرحان/فرحان-test/3 شهور/ # <-- تم تعديل هذا
-
-    # --- غضبان ---
+    - assets/img/فهم/فرحان/فرحان-test/3 شهور/
     - assets/img/فهم/غضبان/غضبان-train/
     - assets/img/فهم/غضبان/غضبان-test/
     - assets/img/فهم/غضبان/غضبان-test/يوم/
     - assets/img/فهم/غضبان/غضبان-test/شهر/
-    - assets/img/فهم/غضبان/غضبان-test/3 شهور/ # <-- تم تعديل هذا
-
-
-    # --- خايف ---
+    - assets/img/فهم/غضبان/غضبان-test/3 شهور/
     - assets/img/فهم/خايف/خايف-train/
     - assets/img/فهم/خايف/خايف-test/
     - assets/img/فهم/خايف/خايف-test/يوم/
     - assets/img/فهم/خايف/خايف-test/شهر/
-    - assets/img/فهم/خايف/خايف-test/3 شهور/ # <-- تم تعديل هذا
-
-    # --- خجول ---
+    - assets/img/فهم/خايف/خايف-test/3 شهور/
     - assets/img/فهم/خجول/خجول-train/
     - assets/img/فهم/خجول/خجول-test/
     - assets/img/فهم/خجول/خجول-test/يوم/
     - assets/img/فهم/خجول/خجول-test/شهر/
-    - assets/img/فهم/خجول/خجول-test/3 شهور/ # <-- تم تعديل هذا
-
-    # --- مفكر ---
+    - assets/img/فهم/خجول/خجول-test/3 شهور/
     - assets/img/فهم/مفكر/مفكر-train/
     - assets/img/فهم/مفكر/مفكر-test/
     - assets/img/فهم/مفكر/مفكر-test/يوم/
     - assets/img/فهم/مفكر/مفكر-test/شهر/
-    - assets/img/فهم/مفكر/مفكر-test/3 شهور/ # <-- تم تعديل هذا
-
-    # --- مندهش ---
+    - assets/img/فهم/مفكر/مفكر-test/3 شهور/
     - assets/img/فهم/مندهش/مندهش-train/
     - assets/img/فهم/مندهش/مندهش-test/
     - assets/img/فهم/مندهش/مندهش-test/يوم/
     - assets/img/فهم/مندهش/مندهش-test/شهر/
-    - assets/img/فهم/مندهش/مندهش-test/3 شهور/ # <-- تم تعديل هذا
+    - assets/img/فهم/مندهش/مندهش-test/3 شهور/
     - assets/objects/
+    - assets/images/ # This will include assets/images/logo.png used in flutter_icons
+    - assets/fonts/ # This includes NotoNaskhArabic-Regular.ttf and Cairo fonts
+    # - assets/fonts/NotoNaskhArabic-Regular.ttf # Redundant if assets/fonts/ is listed
 
-    # ------------ مجلدات أخرى رئيسية إذا وجدت بنفس الطريقة ---
-    # مثال:
-    # - assets/img/مهارات/...
+    - assets/img2/التواصل اللفظي/اخذ او انتظار الدور/
+    - assets/img2/التواصل اللفظي/استخدام صيغة الشكر والأعتذار/
+    - assets/img2/التواصل اللفظي/التصرف في المواقف الاجتماعية/
+    - assets/img2/التواصل اللفظي/تحية الاخرين ورد التحية/صور/اشارة/
+    - assets/img2/التواصل اللفظي/تحية الاخرين ورد التحية/صور/موقف/
+    - assets/img2/التواصل اللفظي/تحية الاخرين ورد التحية/فيديو/
+    - assets/img2/التواصل اللفظي/تنمية الاخلاق والسلوكيات/
+    - assets/img2/التواصل اللفظي/توديع الاخرين عند الانصراف/صور/اشارة/
+    - assets/img2/التواصل اللفظي/توديع الاخرين عند الانصراف/صور/موقف/
+    - assets/img2/التواصل اللفظي/توديع الاخرين عند الانصراف/فيديو/
+    - assets/img2/التواصل غير اللفظي/اشارات وعلامات/
+    # The following two lines seem to be duplicates from above, ensure paths are correct and unique
+    # - assets/img2/التواصل اللفظي/تحية الاخرين ورد التحية/فيديو/
+    # - assets/img2/التواصل اللفظي/توديع الاخرين عند الانصراف/فيديو/
 
-    # ------------ مجلد الصور العام (إذا كان لا يزال مستخدماً) ---
-    - assets/images/
-
-   
-    
-    
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
-
-  # An image asset can refer to one or more resolution-specific "variants", see
-  # https://flutter.dev/to/resolution-aware-images
-
-  # For details regarding adding assets from package dependencies, see
-  # https://flutter.dev/to/asset-from-package
-
-  # To add custom fonts to your application, add a fonts section here,
-  # in this "flutter" section. Each entry in this list should have a
-  # "family" key with the font family name, and a "fonts" key with a
-  # list giving the asset and other descriptors for the font. For
-  # example:
   fonts:
     - family: cairo
       fonts:
@@ -173,15 +122,7 @@ flutter:
         - asset: assets/fonts/Cairo-Medium.ttf
         - asset: assets/fonts/Cairo-Regular.ttf
         - asset: assets/fonts/Cairo-SemiBold.ttf
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
-  #
-  # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package
+    - family: NotoNaskhArabic
+      fonts:
+        - asset: assets/fonts/NotoNaskhArabic-Regular.ttf
+        

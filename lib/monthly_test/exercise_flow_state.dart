@@ -1,28 +1,43 @@
 // lib/cubit/exercise_flow_state.dart
 import 'package:equatable/equatable.dart';
-//import '../models/test_detail.dart'; // تأكد من المسار الصحيح
 
-// --- أنواع الخطوات في السيناريو ---
-enum ExerciseStepType {
-  singleBackendImage, // الخطوة 1 و 2: صورة واحدة من الباك + خيارات
-  doubleBackendImage, // الخطوة 3: صورتان من الباك للاختيار بينهما
-  backendAndAssetImage, // الخطوة 4: صورة باك + صورة asset للاختيار بينهما
-  unknown // حالة غير متوقعة
+// --- Helper class to represent an item to be displayed ---
+class DisplayItem extends Equatable {
+  final String type; // 'Img' or 'Text'
+  final String? content; // Asset path for Img, text content for Text
+  // Unique identifier for this item, used for selection in choice steps
+  // For Img: Asset Path. For Text: The text content itself.
+  final String identifier;
+
+  const DisplayItem({
+    required this.type,
+    required this.content,
+    required this.identifier,
+  });
+
+  @override
+  List<Object?> get props => [type, content, identifier];
 }
 
-// الكلاس الأساسي للحالات
+// --- Enum for how the step should be displayed ---
+enum StepDisplayType {
+  singleItemWithOptions, // Show item1 + text options
+  twoItemsChoice, // Show item1 and item2, user chooses one
+}
+
+// Base State
 abstract class ExerciseFlowState extends Equatable {
   const ExerciseFlowState();
   @override
   List<Object?> get props => [];
 }
 
-// --- الحالات الأساسية ---
+// --- Basic States ---
 class ExerciseFlowInitial extends ExerciseFlowState {}
-
 class ExerciseFlowLoading extends ExerciseFlowState {}
 
-class ExerciseFlowLoadingDistractor extends ExerciseFlowState {} // لتحميل صورة الـ asset
+class ExerciseFlowLoadingDistractor
+    extends ExerciseFlowState {} // Specific loading for random asset
 
 class ExerciseFlowError extends ExerciseFlowState {
   final String message;
@@ -30,49 +45,53 @@ class ExerciseFlowError extends ExerciseFlowState {
   @override
   List<Object> get props => [message];
 }
-
 class ExerciseFlowFinished extends ExerciseFlowState {}
-
 class ExerciseFlowUpdatingSession extends ExerciseFlowState {}
 
-// --- الحالة الرئيسية لعرض التمرين/الخطوة ---
+// --- State for displaying a step ---
 class ExerciseStepLoaded extends ExerciseFlowState {
   final int currentStepIndex; // 0, 1, 2, 3
-  final ExerciseStepType stepType;
-  final String? question; // السؤال العام للخطوة
-  final int? mainSessionId; // ID الاختبار الرئيسي
+  final StepDisplayType displayType;
+  final String? question;
+  final int? mainSessionId;
 
-  // بيانات محددة لكل خطوة
-  final String? image1Path; // مسار الصورة الأولى (URL من باك أو Asset)
-  final String? image2Path; // مسار الصورة الثانية (URL من باك أو Asset)
-  final List<String> answerOptions; // الخيارات النصية (لـ singleBackendImage)
-  final String? correctAnswer; // الإجابة الصحيحة (نص أو مسار صورة)
+  // Data for the items to display
+  final DisplayItem item1;
+  final DisplayItem? item2; // Only used for twoItemsChoice
+
+  // Options for singleItemWithOptions
+  final List<String> answerOptions;
+
+  // The identifier of the correct answer
+  // - For singleItemWithOptions: The correct text option string.
+  // - For twoItemsChoice: The 'identifier' of the correct DisplayItem.
+  final String correctAnswerIdentifier;
 
   const ExerciseStepLoaded({
     required this.currentStepIndex,
-    required this.stepType,
-    required this.correctAnswer,
-    this.question,
-    this.mainSessionId,
-    this.image1Path,
-    this.image2Path,
-    this.answerOptions = const [], // قيمة افتراضية
+    required this.displayType,
+    required this.question,
+    required this.mainSessionId,
+    required this.item1,
+    this.item2, // Nullable
+    required this.answerOptions,
+    required this.correctAnswerIdentifier,
   });
 
   @override
   List<Object?> get props => [
     currentStepIndex,
-    stepType,
-    question,
+        displayType,
+        question,
     mainSessionId,
-    image1Path,
-    image2Path,
-    answerOptions,
-    correctAnswer,
-  ];
+        item1,
+        item2,
+        answerOptions,
+        correctAnswerIdentifier,
+      ];
 }
 
-// --- حالات الإجابة (تحتفظ بالحالة السابقة) ---
+// --- Answer States ---
 class ExerciseCorrectAnswer extends ExerciseFlowState {
   final ExerciseStepLoaded previousState;
   const ExerciseCorrectAnswer(this.previousState);

@@ -229,7 +229,7 @@ class _CreateAccountState extends State<CreateAccount> {
                     width: screenWidth * 0.06, height: screenWidth * 0.06,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.blue,
+                      color: Color(0xFF2C73D9),
                     ), // Completed
                     child: Icon(Icons.check,
                         color: Colors.white, size: screenWidth * 0.035),
@@ -237,7 +237,7 @@ class _CreateAccountState extends State<CreateAccount> {
                   Container(
                     width: screenWidth * 0.1,
                     height: 2,
-                    color: Colors.blue,
+                    color: Color(0xFF2C73D9),
                   ),
                   // Connector active
                   Stack(
@@ -247,14 +247,14 @@ class _CreateAccountState extends State<CreateAccount> {
                         width: screenWidth * 0.06, height: screenWidth * 0.06,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.blue, width: 2),
+                          border: Border.all(color: Color(0xFF2C73D9), width: 2),
                         ), // Active
                       ),
                       Container(
                         width: screenWidth * 0.023, height: screenWidth * 0.023,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.blue,
+                          color: Color(0xFF2C73D9),
                         ), // Active dot
                       ),
                     ],
@@ -338,11 +338,11 @@ class _CreateAccountState extends State<CreateAccount> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: isYesSelected
-                                ? Colors.blue
+                                ? Color(0xFF2C73D9)
                                 : Colors.transparent,
                             border: Border.all(
                                 color:
-                                isYesSelected ? Colors.blue : Colors.grey,
+                                isYesSelected ? Color(0xFF2C73D9) : Colors.grey,
                                 width: 2),
                           ),
                           child: isYesSelected
@@ -354,7 +354,7 @@ class _CreateAccountState extends State<CreateAccount> {
                           "نعم",
                           style: TextStyle(
                             color: isYesSelected
-                                ? Colors.blue.shade700
+                                ? Color(0xFF2C73D9)
                                 : Color(0xFF4A4A4A),
                             fontSize: 22,
                             fontWeight: FontWeight.bold,

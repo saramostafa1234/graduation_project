@@ -24,6 +24,8 @@ class RoutesGenerator {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     debugPrint("Generating route for: ${settings.name} with arguments: ${settings.arguments}"); // استخدام debugPrint
 
+    final args = settings.arguments;
+
     switch (settings.name) {
       case PageRouteName.initial:
         return MaterialPageRoute( builder: (_) => SplashScreen(), settings: settings );
@@ -44,8 +46,16 @@ class RoutesGenerator {
       case PageRouteName.smartAssistant:
         return MaterialPageRoute(builder: (_) => const ChatScreen());
       case PageRouteName.starttest: // <-- تأكد أن هذا الاسم موجود في PageRouteName
-        return MaterialPageRoute( builder: (_) => const StartTest(), settings: settings );
-
+         if (args is List<int>) { // التحقق من أن الـ arguments هي قائمة من الأرقام
+          return MaterialPageRoute(
+            builder: (_) => StartTest(previousSessionDetailIds: args), // تمرير الـ args
+            settings: settings,
+          );
+        } else {
+          // إذا لم يتم تمرير الـ arguments أو كان نوعها خاطئًا
+          debugPrint("RouteGenerator Error: Arguments for StartTest (at ${PageRouteName.starttest}) are not List<int>. Received: $args");
+          return _errorRoute(settings, "بيانات بدء الاختبار غير متوفرة أو غير صالحة.");
+        }
       // --- إضافة مسارات الكويز ---
       /*case PageRouteName.quizManager: // <<--- تأكد من إضافة هذا الثابت في PageRouteName
         return MaterialPageRoute( builder: (_) => const QuizManagerScreen(), settings: settings );
