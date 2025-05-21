@@ -1,4 +1,3 @@
-// lib/services/api_service.dart
 import 'dart:async'; // لاستخدام TimeoutException
 import 'dart:convert';
 import 'dart:developer';
@@ -18,6 +17,7 @@ import 'package:myfinalpro/test/models/quiz_model.dart';
 import 'package:myfinalpro/test3months/test_group_model.dart';
 
 import '../monthly_test/monthly_test_response.dart';
+import 'package:myfinalpro/models/answer_model.dart';
 
 class ApiService {
   final Dio _dio;
@@ -508,53 +508,10 @@ class ApiService {
     }
   }
 
-  static Future<bool> submitAssessmentAnswer(
-      int questionId, String classifiedAnswer, String jwtToken) async {
-    final url = Uri.parse('$baseUrl/sessioncontroller/submit-answers');
-    final headers = {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $jwtToken'
-    };
-    final body = jsonEncode({
-      "Answers": [
-        {"SessionId": questionId, "Answer": classifiedAnswer}
-      ]
-    });
-    try {
-      print(
-          '[ApiService.submitAssessmentAnswer] Calling Backend API: ${url.toString()} for Q:$questionId Ans:"$classifiedAnswer"');
-      final response = await http
-          .post(url, headers: headers, body: body)
-          .timeout(const Duration(seconds: 15));
-      print(
-          '[ApiService.submitAssessmentAnswer] Backend API Status: ${response.statusCode}');
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        print('[ApiService.submitAssessmentAnswer] Success: Answer submitted.');
-        return true;
-      } else {
-        print(
-            '[ApiService.submitAssessmentAnswer] Error: Failed with status ${response.statusCode}. Body: ${response.body}');
-        return false;
-      }
-    } on TimeoutException catch (e) {
-      print(
-          '[ApiService.submitAssessmentAnswer] Error: Request timed out - $e');
-      return false;
-    } on SocketException catch (e) {
-      print('[ApiService.submitAssessmentAnswer] Error: Network error - $e');
-      return false;
-    } on http.ClientException catch (e) {
-      print('[ApiService.submitAssessmentAnswer] Error: Client error - $e');
-      return false;
-    } catch (e) {
-      print(
-          '[ApiService.submitAssessmentAnswer] Error: An unexpected error occurred - $e');
-      return false;
-    }
-  }
-
+  // --- classifyAnswerWithModel --- (Keep As Is)
   static Future<String?> classifyAnswerWithModel(String rawText) async {
-    const String modelPredictEndpoint =
+    // ... (existing code) ...
+        const String modelPredictEndpoint =
         "https://arabic-response-api-869138074073.us-central1.run.app/predict";
     final url = Uri.parse(modelPredictEndpoint);
     final headers = {
@@ -570,59 +527,174 @@ class ApiService {
           .timeout(const Duration(seconds: 20));
       print(
           '[ApiService.classifyAnswer] Model API Status: ${response.statusCode}');
+      print(
+          '[ApiService.classifyAnswer] Model API Response Headers: ${response.headers}');
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         String decodedBody;
         try {
           decodedBody = utf8.decode(response.bodyBytes);
+          print(
+              '[ApiService.classifyAnswer] Body decoded with UTF-8: $decodedBody');
         } catch (e) {
+          print(
+              '[ApiService.classifyAnswer] Error decoding body with UTF-8, falling back to response.body: $e');
           decodedBody = response.body;
         }
         try {
           final dynamic responseData = jsonDecode(decodedBody);
           if (responseData is Map<String, dynamic>) {
-            final dynamic resultValue = responseData['prediction'] ??
-                responseData['result'] ??
-                responseData['classification'];
-            if (resultValue != null) {
-              final String classificationResult = resultValue
-                  .toString()
-                  .trim()
-                  .replaceAll('"', '')
-                  .replaceAll("'", "");
-              const validResults = ["نعم", "لا", "بمساعدة"];
-              if (validResults.contains(classificationResult))
-                return classificationResult;
-              else
-                print(
-                    '[ApiService.classifyAnswer] Error: Unexpected classification value: "$classificationResult"');
-            } else
-              print(
-                  "[ApiService.classifyAnswer] Error: Key 'prediction' (or similar) not found.");
-          } else
             print(
-                '[ApiService.classifyAnswer] Error: Expected a Map response, got ${responseData.runtimeType}');
+                '[ApiService.classifyAnswer] Model Response Body (Map): $responseData');
+            final dynamic resultValue =
+                responseData['prediction']; // <--- تأكد من المفتاح
+            if (resultValue != null) {
+              final String classificationResult =
+                  resultValue.toString().trim().replaceAll('"', '');
+              const validResults = ["نعم", "لا", "بمساعدة"];
+              if (validResults.contains(classificationResult)) {
+                print(
+                    '[ApiService.classifyAnswer] Model Classified As: $classificationResult');
+                return classificationResult;
+              } else {
+                print(
+                    '[ApiService.classifyAnswer] Error: Unexpected classification value after UTF-8 decode: "$classificationResult"');
+                return null;
+              }
+            } else {
+              print(
+                  "[ApiService.classifyAnswer] Error: Key 'prediction' not found in response Map after UTF-8 decode.");
+              return null;
+            }
+          } else {
+            print(
+                '[ApiService.classifyAnswer] Error: Expected a Map response after UTF-8 decode, but got ${responseData.runtimeType}');
+            return null;
+          }
         } catch (e) {
-          print('[ApiService.classifyAnswer] JSON Decode Error: $e');
+          print(
+              '[ApiService.classifyAnswer] JSON Decode Error after manual UTF-8 decode: $e');
+          print('[ApiService.classifyAnswer] Decoded Body was: $decodedBody');
+          return null;
         }
-      } else
+      } else {
         print(
-            '[ApiService.classifyAnswer] Error: Model API failed with status ${response.statusCode}. Body: ${response.body}');
+            '[ApiService.classifyAnswer] Error: Failed with status ${response.statusCode}. Body: ${response.body}');
+        return null;
+      }
     } on TimeoutException catch (e) {
-      print(
-          '[ApiService.classifyAnswer] Error: Model API request timed out - $e');
+      print('[ApiService.classifyAnswer] Error: Request timed out - $e');
+      return null;
     } on SocketException catch (e) {
-      print(
-          '[ApiService.classifyAnswer] Error: Network error connecting to model API - $e');
+      print('[ApiService.classifyAnswer] Error: Network error - $e');
+      return null;
     } on http.ClientException catch (e) {
-      print(
-          '[ApiService.classifyAnswer] Error: HTTP Client error for model API - $e');
+      print('[ApiService.classifyAnswer] Error: Client error - $e');
+      return null;
     } catch (e) {
       print(
-          '[ApiService.classifyAnswer] Error: An unexpected error occurred calling model API - $e');
+          '[ApiService.classifyAnswer] Error: An unexpected error occurred - $e');
+      return null;
     }
-    return null; // Return null on any error or unexpected result
   }
 
+
+  // --- دالة جديدة لإرسال جميع الإجابات المجمعة ---
+  static Future<bool> submitAllAssessmentAnswers(
+      List<AnswerModel> answersToSubmit, // تم تغيير اسم المتغير ليكون أوضح
+      String jwtToken
+  ) async {
+    if (answersToSubmit.isEmpty) {
+      print("[ApiService.submitAllAssessmentAnswers] No answers to submit.");
+      // يمكنك أن تقرر ما إذا كان هذا يعتبر نجاحًا أم فشلًا.
+      // إذا كان من الطبيعي عدم وجود إجابات في بعض الحالات، أرجع true.
+      // إذا كان يجب دائمًا وجود إجابات، أرجع false.
+      return true;
+    }
+
+    // !!! استبدل بالرابط الفعلي لواجهة برمجة تطبيقات الخادم لاستقبال الإجابات المجمعة !!!
+    // يجب أن يكون هذا الرابط مختلفًا عن الرابط الذي استخدمته للإرسال الفردي،
+    // أو يجب أن يكون الخادم قادرًا على التعامل مع كلتا الحالتين.
+    // المثال يفترض أنك تستخدم نفس الرابط ولكن الخادم يتوقع بنية مختلفة للـ payload.
+    const String bulkSubmitApiUrl = 'http://aspiq.runasp.net/api/sessioncontroller/submit-answers'; // <<--- غيّر هذا الرابط ليتناسب مع الـ endpoint الجديد
+    // أو إذا كان نفس الرابط: 'http://aspiq.runasp.net/api/sessioncontroller/submit-answers'
+
+    print("[ApiService.submitAllAssessmentAnswers] Attempting to submit ${answersToSubmit.length} answers to URL: $bulkSubmitApiUrl");
+
+    try {
+      // بناء الـ Payload بالصيغة المطلوبة: { "answers": [ { "SessionId": ..., "Answer": ... }, ... ] }
+      Map<String, dynamic> payload = {
+        'answers': answersToSubmit.map((answer) => answer.toJson()).toList(),
+      };
+      String jsonPayload = jsonEncode(payload);
+
+      print("[ApiService.submitAllAssessmentAnswers] Submitting JSON: $jsonPayload");
+
+      final response = await http.post(
+        Uri.parse(bulkSubmitApiUrl),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $jwtToken', // عدّل هذا إذا كانت طريقة المصادقة مختلفة
+        },
+        body: jsonPayload,
+      ).timeout(const Duration(seconds: 30)); // إضافة مهلة 30 ثانية لعملية الإرسال المجمع
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // 200 OK أو 201 Created عادة ما يشيران إلى النجاح
+        print('[ApiService.submitAllAssessmentAnswers] Bulk answers submitted successfully. Status: ${response.statusCode}');
+        return true;
+      } else {
+        print('[ApiService.submitAllAssessmentAnswers] Failed to submit bulk answers. Status: ${response.statusCode}');
+        print('[ApiService.submitAllAssessmentAnswers] Response body: ${response.body}');
+        return false;
+      }
+    } on TimeoutException catch (e) {
+      print("[ApiService.submitAllAssessmentAnswers] Error: Bulk submission API request timed out - $e");
+      return false;
+    } catch (e) {
+      print('[ApiService.submitAllAssessmentAnswers] Error submitting bulk answers: $e');
+      return false;
+    }
+  }
+
+  // --- (اختياري) يمكنك حذف دالة الإرسال الفردي القديمة إذا لم تعد تستخدمها ---
+  /*
+  static Future<bool> submitAssessmentAnswer(int questionId, String answer, String jwtToken) async {
+    const String singleSubmitApiUrl = 'http://aspiq.runasp.net/api/sessioncontroller/submit-answers'; // رابطك القديم
+    print("[ApiService.submitAssessmentAnswer] Calling Backend API: $singleSubmitApiUrl for Q:$questionId Ans:\"$answer\"");
+
+    try {
+      final response = await http.post(
+        Uri.parse(singleSubmitApiUrl),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $jwtToken',
+        },
+        // هذا هو الـ payload القديم للإرسال الفردي، تأكد من أن الخادم لا يتوقعه إذا كنت تستخدم نفس الرابط للإرسال المجمع
+        body: jsonEncode(<String, dynamic>{
+          'SessionId': questionId,
+          'Answer': answer,
+        }),
+      ).timeout(const Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        print("[ApiService.submitAssessmentAnswer] Backend API Status: ${response.statusCode}");
+        print("[ApiService.submitAssessmentAnswer] Success: Answer submitted.");
+        return true;
+      } else {
+        print("[ApiService.submitAssessmentAnswer] Error: Backend API Status: ${response.statusCode}");
+        print("[ApiService.submitAssessmentAnswer] Body: ${response.body}");
+        return false;
+      }
+    } on TimeoutException catch (e) {
+      print("[ApiService.submitAssessmentAnswer] Error: API request timed out - $e");
+      return false;
+    } catch (e) {
+      print("[ApiService.submitAssessmentAnswer] Error: $e");
+      return false;
+    }
+  }
+  */
   static Future<Map<String, dynamic>> uploadProfilePicture(
       String? token, File imageFile) async {
     if (token == null || token.isEmpty)
@@ -922,11 +994,11 @@ class ApiService {
       final response = await http
           .post(
             url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json, text/plain',
-        },
-        body: json.encode(payload),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json, text/plain',
+            },
+            body: json.encode(payload),
           )
           .timeout(const Duration(seconds: 25));
       print(
@@ -1028,11 +1100,11 @@ class ApiService {
       final response = await http
           .post(
             url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json, text/plain',
-        },
-        body: json.encode(payload),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json, text/plain',
+            },
+            body: json.encode(payload),
           )
           .timeout(const Duration(seconds: 20));
       print(
@@ -1588,80 +1660,108 @@ class ApiService {
       };
     }
   }
-static Future<bool> markSessionDetailAsNotComplete(String token, int sessionDetailId) async {
-  if (sessionDetailId <= 0) {
-    debugPrint("[ApiService.markSessionDetailAsNotComplete] Error: Invalid sessionDetailId ($sessionDetailId).");
-    return false;
+
+  static Future<bool> markSessionDetailAsNotComplete(
+      String token, int sessionDetailId) async {
+    if (sessionDetailId <= 0) {
+      debugPrint(
+          "[ApiService.markSessionDetailAsNotComplete] Error: Invalid sessionDetailId ($sessionDetailId).");
+      return false;
+    }
+    final Uri uri = Uri.parse(
+        '$baseUrl/SessionController/detail/$sessionDetailId/Notcomplete');
+    debugPrint(
+        '[ApiService.markSessionDetailAsNotComplete] Calling: POST $uri');
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+              'Accept': '*/*'
+            },
+            body: jsonEncode({}),
+          )
+          .timeout(const Duration(seconds: 15));
+      debugPrint(
+          '[ApiService.markSessionDetailAsNotComplete] Status Code for ID $sessionDetailId: ${response.statusCode}');
+      bool success = response.statusCode == 200 || response.statusCode == 204;
+      if (!success)
+        debugPrint(
+            '[ApiService.markSessionDetailAsNotComplete] Failed. Status: ${response.statusCode}, Body: ${response.body}');
+      else
+        debugPrint(
+            '[ApiService.markSessionDetailAsNotComplete] Success for ID $sessionDetailId. Body: ${response.body}');
+      return success;
+    } catch (e) {
+      debugPrint(
+          '[ApiService.markSessionDetailAsNotComplete] Error for ID $sessionDetailId: $e');
+      return false;
+    }
   }
-  final Uri uri = Uri.parse('$baseUrl/SessionController/detail/$sessionDetailId/Notcomplete');
-  debugPrint('[ApiService.markSessionDetailAsNotComplete] Calling: POST $uri');
-  try {
-    final response = await http.post(
-      uri,
-      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json', 'Accept': '*/*'},
-      body: jsonEncode({}),
-    ).timeout(const Duration(seconds: 15));
-    debugPrint('[ApiService.markSessionDetailAsNotComplete] Status Code for ID $sessionDetailId: ${response.statusCode}');
-    bool success = response.statusCode == 200 || response.statusCode == 204;
-    if (!success) debugPrint('[ApiService.markSessionDetailAsNotComplete] Failed. Status: ${response.statusCode}, Body: ${response.body}');
-    else debugPrint('[ApiService.markSessionDetailAsNotComplete] Success for ID $sessionDetailId. Body: ${response.body}');
-    return success;
-  } catch (e) {
-    debugPrint('[ApiService.markSessionDetailAsNotComplete] Error for ID $sessionDetailId: $e');
-    return false;
-  }
-}
 
 // ---!!! دالة جديدة لتعليم تفصيل الاختبار كـ "غير مكتمل" !!!---
-static Future<bool> markTestDetailAsNotComplete(String token, int testDetailId) async {
-  if (testDetailId <= 0) {
-    debugPrint("[ApiService.markTestDetailAsNotComplete] Error: Invalid testDetailId ($testDetailId).");
-    return false;
-  }
-
-  // المسار الجديد بناءً على الصورة الأخيرة
-  final Uri uri = Uri.parse('$baseUrl/TestController/test-detail/$testDetailId/Notcomplete');
-
-  debugPrint('[ApiService.markTestDetailAsNotComplete] Calling: POST $uri');
-
-  try {
-    final response = await http.post(
-      uri,
-      headers: {
-        'Authorization': 'Bearer $token',
-        // 'Content-Type': 'application/json', // قد لا تكون ضرورية إذا لم يكن هناك body
-        'Accept': '*/*',
-      },
-      // لا يوجد body بناءً على الصورة
-    ).timeout(const Duration(seconds: 15));
-
-    debugPrint('[ApiService.markTestDetailAsNotComplete] Status Code for Test ID $testDetailId: ${response.statusCode}');
-    bool success = response.statusCode == 200 || response.statusCode == 204;
-
-    if (!success) {
-      debugPrint('[ApiService.markTestDetailAsNotComplete] Failed. Status: ${response.statusCode}, Body: ${response.body}');
-    } else {
-      debugPrint('[ApiService.markTestDetailAsNotComplete] Success for Test ID $testDetailId. Body: ${response.body}');
+  static Future<bool> markTestDetailAsNotComplete(
+      String token, int testDetailId) async {
+    if (testDetailId <= 0) {
+      debugPrint(
+          "[ApiService.markTestDetailAsNotComplete] Error: Invalid testDetailId ($testDetailId).");
+      return false;
     }
-    return success;
-  } on TimeoutException catch (e) {
-    debugPrint('[ApiService.markTestDetailAsNotComplete] Timeout for Test ID $testDetailId: $e');
-    return false;
-  } on SocketException catch (e) {
-    debugPrint('[ApiService.markTestDetailAsNotComplete] Network Error for Test ID $testDetailId: $e');
-    return false;
-  } on http.ClientException catch (e) {
-    debugPrint('[ApiService.markTestDetailAsNotComplete] Client Error for Test ID $testDetailId: $e');
-    return false;
-  } catch (e) {
-    debugPrint('[ApiService.markTestDetailAsNotComplete] Unexpected Error for Test ID $testDetailId: $e');
-    return false;
+
+    // المسار الجديد بناءً على الصورة الأخيرة
+    final Uri uri = Uri.parse(
+        '$baseUrl/TestController/test-detail/$testDetailId/Notcomplete');
+
+    debugPrint('[ApiService.markTestDetailAsNotComplete] Calling: POST $uri');
+
+    try {
+      final response = await http.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          // 'Content-Type': 'application/json', // قد لا تكون ضرورية إذا لم يكن هناك body
+          'Accept': '*/*',
+        },
+        // لا يوجد body بناءً على الصورة
+      ).timeout(const Duration(seconds: 15));
+
+      debugPrint(
+          '[ApiService.markTestDetailAsNotComplete] Status Code for Test ID $testDetailId: ${response.statusCode}');
+      bool success = response.statusCode == 200 || response.statusCode == 204;
+
+      if (!success) {
+        debugPrint(
+            '[ApiService.markTestDetailAsNotComplete] Failed. Status: ${response.statusCode}, Body: ${response.body}');
+      } else {
+        debugPrint(
+            '[ApiService.markTestDetailAsNotComplete] Success for Test ID $testDetailId. Body: ${response.body}');
+      }
+      return success;
+    } on TimeoutException catch (e) {
+      debugPrint(
+          '[ApiService.markTestDetailAsNotComplete] Timeout for Test ID $testDetailId: $e');
+      return false;
+    } on SocketException catch (e) {
+      debugPrint(
+          '[ApiService.markTestDetailAsNotComplete] Network Error for Test ID $testDetailId: $e');
+      return false;
+    } on http.ClientException catch (e) {
+      debugPrint(
+          '[ApiService.markTestDetailAsNotComplete] Client Error for Test ID $testDetailId: $e');
+      return false;
+    } catch (e) {
+      debugPrint(
+          '[ApiService.markTestDetailAsNotComplete] Unexpected Error for Test ID $testDetailId: $e');
+      return false;
+    }
   }
-}
 
   // --- دالة جديدة لجلب مجموعة اختبار الـ 3 شهور ---
   static Future<TestGroupResponse?> fetchNextTestGroup(String token) async {
-    final String apiUrl = "$baseUrl/TestController/next-test-group"; // تأكد من صحة المسار
+    final String apiUrl =
+        "$baseUrl/TestController/next-test-group"; // تأكد من صحة المسار
     final Uri uri = Uri.parse(apiUrl);
     debugPrint("ApiService: Calling GET $uri to fetch next test group.");
 
@@ -1673,26 +1773,31 @@ static Future<bool> markTestDetailAsNotComplete(String token, int testDetailId) 
           'Authorization': 'Bearer $token',
         },
       );
-      debugPrint("ApiService.fetchNextTestGroup: Status Code: ${response.statusCode}");
+      debugPrint(
+          "ApiService.fetchNextTestGroup: Status Code: ${response.statusCode}");
       if (response.statusCode == 200) {
         if (response.body.isEmpty) {
-             debugPrint("ApiService.fetchNextTestGroup: Received empty response body.");
-            return null;
+          debugPrint(
+              "ApiService.fetchNextTestGroup: Received empty response body.");
+          return null;
         }
         final data = jsonDecode(response.body);
-         if (data == null || data is! Map<String,dynamic> || data.isEmpty) {
-             debugPrint("ApiService.fetchNextTestGroup: Received empty or invalid data after decode.");
-            return null;
+        if (data == null || data is! Map<String, dynamic> || data.isEmpty) {
+          debugPrint(
+              "ApiService.fetchNextTestGroup: Received empty or invalid data after decode.");
+          return null;
         }
         return TestGroupResponse.fromJson(data);
       } else if (response.statusCode == 401) {
         debugPrint("ApiService.fetchNextTestGroup: Unauthorized.");
         throw Exception("Unauthorized");
-      } else if (response.statusCode == 404 || response.statusCode == 204 ) {
-        debugPrint("ApiService.fetchNextTestGroup: No next test group available (404 or 204).");
+      } else if (response.statusCode == 404 || response.statusCode == 204) {
+        debugPrint(
+            "ApiService.fetchNextTestGroup: No next test group available (404 or 204).");
         return null;
       } else {
-        debugPrint("ApiService.fetchNextTestGroup: Failed. Status: ${response.statusCode}, Body: ${response.body}");
+        debugPrint(
+            "ApiService.fetchNextTestGroup: Failed. Status: ${response.statusCode}, Body: ${response.body}");
         throw Exception("Failed to load test group data");
       }
     } catch (e) {
@@ -1704,10 +1809,12 @@ static Future<bool> markTestDetailAsNotComplete(String token, int testDetailId) 
   // --- دالة جديدة لتعليم إكمال مجموعة الاختبار ---
   static Future<bool> markTestGroupDone(String token, int groupId) async {
     if (groupId <= 0) {
-        debugPrint("ApiService: Invalid groupId ($groupId) for markTestGroupDone.");
-        return false;
+      debugPrint(
+          "ApiService: Invalid groupId ($groupId) for markTestGroupDone.");
+      return false;
     }
-    final String apiUrl = "$baseUrl/TestController/mark-group-done/$groupId"; // تأكد من صحة المسار
+    final String apiUrl =
+        "$baseUrl/TestController/mark-group-done/$groupId"; // تأكد من صحة المسار
     final Uri uri = Uri.parse(apiUrl);
     debugPrint("ApiService: Calling POST $uri to mark group done.");
 
@@ -1719,12 +1826,13 @@ static Future<bool> markTestDetailAsNotComplete(String token, int testDetailId) 
           'Authorization': 'Bearer $token',
         },
       );
-      debugPrint("ApiService.markTestGroupDone (GroupID: $groupId): Status Code: ${response.statusCode}");
+      debugPrint(
+          "ApiService.markTestGroupDone (GroupID: $groupId): Status Code: ${response.statusCode}");
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint("ApiService.markTestGroupDone (GroupID: $groupId): Exception: $e");
+      debugPrint(
+          "ApiService.markTestGroupDone (GroupID: $groupId): Exception: $e");
       return false;
     }
   }
-
 } // نهاية الكلاس ApiService

@@ -1,188 +1,224 @@
 import 'package:badges/badges.dart' as badges;
 import 'package:flutter/material.dart';
+import '../models/notification_item.dart'; // استيراد المودل
+import '../services/notification_manager.dart'; // استيراد مدير الإشعارات
 
 class NotificationIcon extends StatefulWidget {
+  final Function? onNotificationsUpdated;
+
+  // تعديل الكونستركتور لاستقبال المفتاح بشكل صحيح
+  const NotificationIcon({super.key, this.onNotificationsUpdated});
+
   @override
-  _NotificationIconState createState() => _NotificationIconState();
+  // تعديل اسم الحالة ليكون عامًا إذا أردنا الوصول إليه من الخارج عبر المفتاح
+  // ولكن الطريقة الأفضل هي توفير دالة عامة refresh
+  NotificationIconState createState() => NotificationIconState();
 }
 
-class _NotificationIconState extends State<NotificationIcon> {
-  final GlobalKey _iconKey = GlobalKey(); // مفتاح لتحديد موقع الأيقونة
-  bool _isNotificationOpen =
-      false; // متغير لتتبع حالة فتح أو إغلاق قائمة الإشعارات
+// جعل اسم الحالة عامًا (NotificationIconState بدلاً من _NotificationIconState)
+class NotificationIconState extends State<NotificationIcon> {
+  final GlobalKey _iconKey = GlobalKey();
+  bool _isNotificationOpen = false;
+  List<NotificationItem> _activeNotifications = [];
+  bool _isLoading = true;
 
-  // قائمة تحتوي على الإشعارات مع العناوين والأوقات
-  List<Map<String, String>> notifications = [
-    {"title": "الجلسة تبدأ بعد ساعتين.", "time": "5 س"},
-    {"title": "انتهت الجلسة.", "time": "1 س"},
-    {"title": "لا تنسَ إتمام التقييم الشهري", "time": "30 د"},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationsFromPrefs();
+  }
 
-  // دالة لفتح أو إغلاق قائمة الإشعارات
-  void _toggleNotifications(BuildContext context) {
+  Future<void> _loadNotificationsFromPrefs() async {
+    if (!mounted) return;
     setState(() {
-      _isNotificationOpen = !_isNotificationOpen;
+      _isLoading = true;
     });
+    try {
+      _activeNotifications = await NotificationManager.loadNotifications();
+      _activeNotifications = _activeNotifications.where((n) => n.isActive).toList();
+      _activeNotifications.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // الأحدث أولاً
+    } catch (e) {
+      debugPrint("Error loading notifications in Icon: $e");
+      _activeNotifications = [];
+    }
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
-    if (_isNotificationOpen) {
-      // الحصول على موقع أيقونة الإشعارات على الشاشة
-      final RenderBox renderBox =
-          _iconKey.currentContext!.findRenderObject() as RenderBox;
-      final Offset position = renderBox.localToGlobal(Offset.zero);
+  // دالة عامة لتحديث الإشعارات من الخارج
+  void refreshNotifications() {
+    _loadNotificationsFromPrefs();
+  }
 
-      // إظهار النافذة المنبثقة عند النقر على أيقونة الإشعارات
-      showDialog(
-        context: context,
-        barrierColor: Colors.transparent, // جعل الخلفية شفافة
-        builder: (context) => GestureDetector(
-          onTap: () {
-            // إغلاق القائمة عند النقر خارجها
-            setState(() {
-              _isNotificationOpen = false;
-            });
-            Navigator.of(context).pop();
-          },
-          child: Stack(
-            children: [
-              // تأثير التمويه للخلفية مع لون شفاف
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black
-                      .withOpacity(0.3), // شفافية للخلفية لتمييز الإشعارات
-                ),
-              ),
-              // تحديد موقع صندوق الإشعارات أسفل أيقونة الجرس
-              Positioned(
-                top: position.dy + renderBox.size.height + 5,
-                // تحديد موقع القائمة أسفل الجرس
-                right: 16,
-                // ضبطها ناحية اليمين
-                left: 16,
-                // تمديدها للعرض المناسب
-                child: Material(
-                  color: Colors.transparent, // جعل المادة شفافة
+  void _toggleNotifications(BuildContext context) {
+    if (_isLoading) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("جاري تحميل الإشعارات...")),
+      );
+      return;
+    }
+
+    _loadNotificationsFromPrefs().then((_) {
+      if (!mounted) return;
+      setState(() {
+        _isNotificationOpen = !_isNotificationOpen;
+      });
+
+      if (_isNotificationOpen) {
+        final RenderBox renderBox =
+        _iconKey.currentContext!.findRenderObject() as RenderBox;
+        final Offset position = renderBox.localToGlobal(Offset.zero);
+
+        showDialog(
+          context: context,
+          barrierColor: Colors.transparent,
+          builder: (context) => GestureDetector(
+            onTap: () {
+              if (mounted) {
+                setState(() {
+                  _isNotificationOpen = false;
+                });
+              }
+              Navigator.of(context).pop();
+            },
+            child: Stack(
+              children: [
+                Positioned.fill(
                   child: Container(
-                    width: MediaQuery.of(context).size.width * 0.9,
-                    // جعل القائمة تستوعب 90% من عرض الشاشة
-                    padding: EdgeInsets.all(16),
-                    // إضافة مسافة داخلية
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      // لون الخلفية أبيض
-                      borderRadius: BorderRadius.circular(20),
-                      // تدوير الحواف
-                      boxShadow: [
-                        BoxShadow(color: Colors.black26, blurRadius: 10)
-                      ], // إضافة ظل خفيف
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      // محاذاة المحتوى لليمين
-                      children: [
-                        // عنوان قسم الإشعارات
-                        Text(
-                          "الإشعارات",
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.right,
-                        ),
-                        SizedBox(height: 10), // مسافة فاصلة
-                        // عرض قائمة الإشعارات
-                        ...notifications.map((notification) => Container(
-                              margin: EdgeInsets.symmetric(vertical: 5),
-                              // مسافة بين كل إشعار
-                              padding: EdgeInsets.all(12),
-                              // مسافة داخلية
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                // لون الخلفية أبيض
-                                borderRadius: BorderRadius.circular(15),
-                                // تدوير الحواف
-                                border: Border.all(
-                                    color:
-                                        Colors.grey.shade300), // تحديد الإطار
+                    color: Colors.black.withOpacity(0.3),
+                  ),
+                ),
+                Positioned(
+                  top: position.dy + renderBox.size.height + 5,
+                  right: 16,
+                  left: 16,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      width: MediaQuery.of(context).size.width * 0.9,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black26, blurRadius: 10)
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text(
+                            "الإشعارات",
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.right,
+                          ),
+                          const SizedBox(height: 10),
+                          if (_activeNotifications.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20.0),
+                              child: Center(
+                                child: Text(
+                                  "لا توجد إشعارات حاليًا.",
+                                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                                ),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                // محاذاة العناصر لليمين
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment
-                                          .end, // محاذاة النص لليمين
+                            )
+                          else
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxHeight: MediaQuery.of(context).size.height * 0.5,
+                              ),
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: _activeNotifications.length,
+                                itemBuilder: (ctx, index) {
+                                  final notification = _activeNotifications[index];
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(vertical: 5),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(15),
+                                      border: Border.all(color: Colors.grey.shade300),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
                                       children: [
-                                        // نص عنوان الإشعار
-                                        Text(
-                                          notification["title"]!,
-                                          style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.blue,
-                                              fontWeight: FontWeight.bold),
-                                          textAlign: TextAlign.right,
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            children: [
+                                              Text(
+                                                notification.title,
+                                                style: const TextStyle(
+                                                    fontSize: 14,
+                                                    color: Colors.blue,
+                                                    fontWeight: FontWeight.bold),
+                                                textAlign: TextAlign.right,
+                                              ),
+                                              const SizedBox(height: 5),
+                                              Text(
+                                                formatTimeAgo(notification.createdAt),
+                                                style: const TextStyle(
+                                                    fontSize: 12, color: Colors.grey),
+                                                textAlign: TextAlign.right,
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                        SizedBox(height: 5),
-                                        // مسافة بين النصوص
-                                        // نص وقت الإشعار
-                                        Text(
-                                          notification["time"]!,
-                                          style: TextStyle(
-                                              fontSize: 12, color: Colors.grey),
-                                          textAlign: TextAlign.right,
+                                        const SizedBox(width: 10),
+                                        CircleAvatar(
+                                          backgroundColor: Colors.blue.shade100,
+                                          child: const Icon(Icons.notifications, color: Colors.blue),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                  SizedBox(width: 10),
-                                  // مسافة بين النص والأيقونة
-                                  // أيقونة الجرس داخل دائرة
-                                  CircleAvatar(
-                                    backgroundColor: Colors.blue.shade100,
-                                    child: Icon(Icons.notifications,
-                                        color: Colors.blue),
-                                  ),
-                                ],
+                                  );
+                                },
                               ),
-                            )),
-                      ],
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ).then((_) {
-        // إغلاق الإشعارات عند إغلاق النافذة المنبثقة
-        setState(() {
-          _isNotificationOpen = false;
+        ).then((_) {
+          if (mounted) {
+            setState(() {
+              _isNotificationOpen = false;
+            });
+          }
+          if (widget.onNotificationsUpdated != null) {
+            widget.onNotificationsUpdated!();
+          }
         });
-      });
-    }
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 16.0, top: 16),
-      // إضافة مسافة من الأعلى واليمين
       child: GestureDetector(
         key: _iconKey,
-        // تحديد موقع الأيقونة
         onTap: () => _toggleNotifications(context),
-        // استدعاء دالة فتح/إغلاق الإشعارات عند النقر
         child: badges.Badge(
           position: badges.BadgePosition.topEnd(top: -5, end: -5),
-          // تحديد موقع الشارة الحمراء
-          showBadge: notifications.isNotEmpty,
-          // إظهار الشارة فقط إذا كان هناك إشعارات
+          showBadge: !_isLoading && _activeNotifications.isNotEmpty,
           badgeContent: Text(
-            notifications.length.toString(), // عدد الإشعارات غير المقروءة
-            style: TextStyle(
-                color: Colors.white, fontSize: 12), // تصميم النص داخل الشارة
+            _isLoading ? ".." : _activeNotifications.length.toString(),
+            style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
-          child: Icon(Icons.notifications,
-              color: Color(0xff2C73D9), size: 28), // أيقونة الجرس
+          child: const Icon(Icons.notifications, color: Color(0xff2C73D9), size: 28),
         ),
       ),
     );

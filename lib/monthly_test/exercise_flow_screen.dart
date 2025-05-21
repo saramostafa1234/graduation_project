@@ -232,7 +232,7 @@ class _ExerciseFlowScreenState extends State<ExerciseFlowScreen> {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
             child:
-                _buildExerciseStepUI(context, loadedState, enableInteraction),
+            _buildExerciseStepUI(context, loadedState, enableInteraction),
           ),
         ),
       );
@@ -301,7 +301,7 @@ class _ExerciseFlowScreenState extends State<ExerciseFlowScreen> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor:
-                        enableInteraction ? Colors.white : Colors.grey.shade300,
+                    enableInteraction ? Colors.white : Colors.grey.shade300,
                     foregroundColor: enableInteraction
                         ? const Color(0xff2C73D9)
                         : Colors.grey.shade600,
@@ -316,9 +316,9 @@ class _ExerciseFlowScreenState extends State<ExerciseFlowScreen> {
                   onPressed: enableInteraction
                       ? () {
                     print("Button '$optionText' pressed. Submitting...");
-                          context.read<ExerciseFlowCubit>().submitAnswer(
-                              optionText); // Submit the text option
-                        }
+                    context.read<ExerciseFlowCubit>().submitAnswer(
+                        optionText); // Submit the text option
+                  }
                       : null, // Disable button if interaction is not enabled
                   child: Text(optionText,
                       style: const TextStyle(
@@ -373,8 +373,8 @@ class _ExerciseFlowScreenState extends State<ExerciseFlowScreen> {
   // --- Unified Widget to Build Either Image or Text Display Item ---
   Widget _buildDisplayItemWidget(DisplayItem item,
       {required BuildContext context,
-      required bool isSelectable,
-      bool enableInteraction = true}) {
+        required bool isSelectable,
+        bool enableInteraction = true}) {
     // enableInteraction needed only if selectable
 
     final double contentWidth = MediaQuery.of(context).size.width * 0.8;
@@ -382,7 +382,7 @@ class _ExerciseFlowScreenState extends State<ExerciseFlowScreen> {
     final double imgHeight = MediaQuery.of(context).size.height * 0.29;
     final double clampedWidth = contentWidth.clamp(280, 340);
     final double clampedHeight =
-        imgHeight.clamp(220, 300); // Primarily for images
+    imgHeight.clamp(220, 300); // Primarily for images
 
     Widget contentWidget;
 
@@ -415,11 +415,11 @@ class _ExerciseFlowScreenState extends State<ExerciseFlowScreen> {
       return InkWell(
         onTap: enableInteraction
             ? () {
-                print(
-                    "Selectable item tapped. Identifier: '${item.identifier}'. Submitting...");
-                context.read<ExerciseFlowCubit>().submitAnswer(
-                    item.identifier); // Submit the item's unique identifier
-              }
+          print(
+              "Selectable item tapped. Identifier: '${item.identifier}'. Submitting...");
+          context.read<ExerciseFlowCubit>().submitAnswer(
+              item.identifier); // Submit the item's unique identifier
+        }
             : null,
         // Disable tap if interaction not enabled
         borderRadius: BorderRadius.circular(14),
@@ -445,7 +445,7 @@ class _ExerciseFlowScreenState extends State<ExerciseFlowScreen> {
                         offset: Offset(0, 4))
                 ]),
             child: ClipRRect(
-                // Clip image content
+              // Clip image content
                 borderRadius: BorderRadius.circular(14),
                 child: contentWidget),
           ),
@@ -481,7 +481,7 @@ class _ExerciseFlowScreenState extends State<ExerciseFlowScreen> {
 
     // Ensure path starts with 'assets/' - redundant if localAssetPath is correct, but safe.
     final String finalAssetPath =
-        assetPath.startsWith('assets/') ? assetPath : 'assets/$assetPath';
+    assetPath.startsWith('assets/') ? assetPath : 'assets/$assetPath';
     print(
         "Attempting to load ASSET image: $finalAssetPath (Original: $assetPath)");
 
@@ -514,7 +514,7 @@ class _ExerciseFlowScreenState extends State<ExerciseFlowScreen> {
           child: Icon(Icons.broken_image_outlined, // More specific icon
               color: Colors.grey.shade400,
               size: (width ?? 60) * 0.4) // Adjust size based on width
-          ),
+      ),
     );
   }
 
@@ -522,14 +522,14 @@ class _ExerciseFlowScreenState extends State<ExerciseFlowScreen> {
   Widget _buildLoadingUI(String message) {
     return Center(
         child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const CircularProgressIndicator(color: Colors.white),
-        const SizedBox(height: 20),
-        Text(message,
-            style: const TextStyle(color: Colors.white70, fontSize: 16))
-      ],
-    ));
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(height: 20),
+            Text(message,
+                style: const TextStyle(color: Colors.white70, fontSize: 16))
+          ],
+        ));
   }
 
   // --- UI for Error State ---
@@ -577,27 +577,27 @@ class _ExerciseFlowScreenState extends State<ExerciseFlowScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (isUpdating) ...[
-            const CircularProgressIndicator(color: Colors.white),
-            const SizedBox(height: 25),
-            const Text("جاري حفظ النتائج...",
-                style: TextStyle(color: Colors.white, fontSize: 18),
-                textAlign: TextAlign.center),
-          ] else ...[
-            const Icon(Icons.check_circle_outline_rounded,
-                color: Colors.lightGreenAccent, size: 90),
-            const SizedBox(height: 25),
-            const Text("لقد أكملت الاختبار بنجاح!",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center),
-            const SizedBox(height: 40),
-            const Text("سيتم العودة للشاشة الرئيسية...",
-                style: TextStyle(color: Colors.white70, fontSize: 16),
-                textAlign: TextAlign.center),
-            // The listener handles the actual pop
-          ]
+                const CircularProgressIndicator(color: Colors.white),
+                const SizedBox(height: 25),
+                const Text("جاري حفظ النتائج...",
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                    textAlign: TextAlign.center),
+              ] else ...[
+                const Icon(Icons.check_circle_outline_rounded,
+                    color: Colors.lightGreenAccent, size: 90),
+                const SizedBox(height: 25),
+                const Text("لقد أكملت الاختبار بنجاح!",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 40),
+                const Text("سيتم العودة للشاشة الرئيسية...",
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
+                    textAlign: TextAlign.center),
+                // The listener handles the actual pop
+              ]
             ],
           ),
         ));
@@ -619,7 +619,7 @@ class _ExerciseFlowScreenState extends State<ExerciseFlowScreen> {
               'هل أنت متأكد من رغبتك في إنهاء الاختبار الآن؟ لن يتم حفظ تقدمك الحالي.'),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           actionsPadding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           actions: <Widget>[
             TextButton(
               child: Text('إلغاء', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500)),

@@ -1,5 +1,6 @@
-// lib/models/session_model.dart
+// lib/session/models/session_model.dart
 import 'dart:math'; // لـ min
+import 'package:flutter/foundation.dart'; // لـ debugPrint
 
 // --- كلاس Session ---
 class Session {
@@ -12,6 +13,7 @@ class Session {
   final int? detailsCount; // عدد التمارين الكلي المتوقع
   final List<SessionDetail> details; // قائمة التمارين الأساسية (1-4 عادة)
   final SessionDetail? newDetail; // الكائن الإضافي المستخدم في التمرين قبل الأخير
+  final Map<String, dynamic>? attributes; // حقل لتخزين أي بيانات إضافية مثل رسائل الاختبار
 
   // داخل كلاس Session
   int get id => sessionId ?? 0;
@@ -26,6 +28,7 @@ class Session {
     this.detailsCount,
     required this.details, // قائمة التمارين الأساسية
     this.newDetail, // الكائن الإضافي
+    this.attributes, // لإضافة البيانات الإضافية
   });
 
   factory Session.fromJson(Map<String, dynamic> json) {
@@ -36,7 +39,7 @@ class Session {
     dynamic detailsData = json['details'];
     if (detailsData != null) {
       dynamic valuesList =
-          (detailsData is Map<String, dynamic>) ? detailsData['\$values'] : null;
+      (detailsData is Map<String, dynamic>) ? detailsData['\$values'] : null;
       List? sourceList = (valuesList != null && valuesList is List)
           ? valuesList
           : (detailsData is List ? detailsData : null);
@@ -47,17 +50,17 @@ class Session {
             try {
               detailsList.add(SessionDetail.fromJson(v));
             } catch (e) {
-              print(
+              debugPrint(
                   "Error parsing SessionDetail from details list: $e\nData: $v");
             }
           }
         }
       } else {
-        print(
+        debugPrint(
             "Warning: 'details'/'\$values' key is not a parsable list in Session JSON.");
       }
     } else {
-      print("Warning: 'details' key not found in Session JSON.");
+      debugPrint("Warning: 'details' key not found in Session JSON.");
     }
 
     // تحليل newDetail بشكل منفصل
@@ -65,20 +68,51 @@ class Session {
     if (newDetailData != null && newDetailData is Map<String, dynamic>) {
       try {
         newDetailParsed = SessionDetail.fromJson(newDetailData);
-        // إذا كنت تريد طباعة الـ id الأصلي لـ newDetail:
-        // print("Parsed newDetail successfully (ID from source: ${newDetailParsed?.originalDetailId}).");
       } catch (e) {
-        print("Error parsing newDetail: $e\nData: $newDetailData");
+        debugPrint("Error parsing newDetail: $e\nData: $newDetailData");
       }
     } else {
-      print("Info: newDetail object not found or invalid in Session JSON.");
+      debugPrint("Info: newDetail object not found or invalid in Session JSON.");
     }
 
     final expectedCount = json['detailsCount'] as int?;
     if (expectedCount != null && detailsList.length != expectedCount) {
-      print(
+      debugPrint(
           "Warning: detailsCount ($expectedCount) does not match actual details list length (${detailsList.length}).");
     }
+
+    // --- قراءة الرسائل الخاصة بالاختبارات من attributes ---
+    // بناءً على وصفك: "ريسبونس الجلسه بيبقي جاي معاه اتربيوت اسمو..."
+    // مثال:
+    // return Ok(new { SessionId = currentSession.Session_ID, Message = $"قم باداء اختبار الشهر ل {currentSession.Session?.Title}" });
+    // return Ok(new { Message = $"قم باداء اختبار ال 3 شهور ل {groupTitle}" });
+    Map<String, dynamic> parsedAttributes = {};
+    if (json['Message'] != null && json['Message'] is String) {
+      String messageContent = json['Message'] as String;
+      // لا يوجد SessionId مع رسالة اختبار الـ 3 شهور حسب المثال، لذا نعتمد على محتوى الرسالة فقط
+      if (messageContent.contains("اختبار الشهر ل")) {
+        // هذا يعني أن الرسالة خاصة باختبار الشهر
+        parsedAttributes['monthly_test_message'] = messageContent;
+        // يمكننا محاولة استخراج اسم الاختبار إذا أردنا
+        // final monthlyTestName = messageContent.replaceFirst("قم باداء اختبار الشهر ل ", "").trim();
+        // parsedAttributes['monthly_test_name'] = monthlyTestName;
+        if (json['SessionId'] != null) {
+          parsedAttributes['monthly_test_session_id'] = json['SessionId'];
+        }
+      } else if (messageContent.contains("اختبار ال 3 شهور ل")) {
+        // هذا يعني أن الرسالة خاصة باختبار الـ 3 شهور
+        parsedAttributes['three_month_test_message'] = messageContent;
+        // final threeMonthTestName = messageContent.replaceFirst("قم باداء اختبار ال 3 شهور ل ", "").trim();
+        // parsedAttributes['three_month_test_name'] = threeMonthTestName;
+      }
+      debugPrint("Parsed attributes from 'Message' field: $parsedAttributes");
+    }
+    // إذا كانت الـ attributes تأتي بشكل مباشر كـ Map (كحالة احتياطية أو تصميم مختلف للـ API)
+    if (json['attributes'] is Map<String, dynamic>) {
+      parsedAttributes.addAll(json['attributes']);
+      debugPrint("Additionally parsed attributes from 'attributes' field: ${json['attributes']}");
+    }
+
 
     return Session(
       sessionId: json['sessionId'] as int?,
@@ -86,10 +120,11 @@ class Session {
       description: json['description'] as String?,
       goal: json['goal'] as String?,
       groupId: json['groupId'] as int?,
-      typeId: json['typeId'] as int? ?? 1,
+      typeId: json['typeId'] as int? ?? 1, // قيمة افتراضية إذا لم يكن موجودًا
       detailsCount: expectedCount,
       details: detailsList,
       newDetail: newDetailParsed,
+      attributes: parsedAttributes.isNotEmpty ? parsedAttributes : null,
     );
   }
 }
@@ -101,7 +136,7 @@ class SessionDetail {
   final String? datatypeOfContent; // "Img" أو "Text" أو "Video" أو null
   final String? text;
   final String? image;
-  final String? video; // <--- حقل الفيديو موجود بالفعل، جيد!
+  final String? video;
   final String? story;
   final String? sound;
   final String? part;
@@ -112,7 +147,7 @@ class SessionDetail {
 
   SessionDetail({
     required this.id,
-    this.originalDetailId, // <--- إضافة للكونستركتور
+    this.originalDetailId,
     this.datatypeOfContent,
     this.text,
     this.image,
@@ -128,14 +163,15 @@ class SessionDetail {
 
   factory SessionDetail.fromJson(Map<String, dynamic> json) {
     int parsedId;
-    final idValue = json['id'] ?? json['detail_ID']; // الأولوية لـ id ثم detail_ID كمعرف أساسي للكائن
+    // الأولوية لـ id ثم detail_ID كمعرف أساسي للكائن
+    final idValue = json['id'] ?? json['detail_ID'];
     if (idValue != null && idValue is int) {
       parsedId = idValue;
     } else if (idValue != null && idValue is String) {
       parsedId = int.tryParse(idValue) ?? 0;
     } else {
-      print("Warning: Missing or invalid ID (from 'id' or 'detail_ID'). Using 0. Data: $json");
-      parsedId = 0;
+      debugPrint("Warning (SessionDetail): Missing or invalid ID (from 'id' or 'detail_ID'). Using 0. Data: $json");
+      parsedId = 0; // قيمة افتراضية في حالة عدم وجود ID صالح
     }
 
     // قراءة detail_ID بشكل منفصل لتخزينه إذا كنت تحتاجه كما هو
@@ -153,22 +189,23 @@ class SessionDetail {
     final imageValue = json['image_'] ?? json['image'];
     String? imagePath = imageValue as String?;
     if (imagePath != null) {
+      // إصلاح الشرطات المائلة وضمان عدم وجود مسافات زائدة
       imagePath = imagePath.replaceAll('\\', '/').trim();
     }
 
     return SessionDetail(
       id: parsedId,
-      originalDetailId: parsedOriginalDetailId, // <--- تمرير القيمة المقروءة
+      originalDetailId: parsedOriginalDetailId,
       datatypeOfContent: json['datatypeOfContent'] as String?,
       text: textValue as String?,
       image: imagePath,
-      video: json['video'] as String?, // حقل الفيديو يقرأ بالفعل
+      video: json['video'] as String?,
       story: json['story'] as String?,
       sound: json['sound'] as String?,
       part: json['part'] as String?,
       more: json['more'] as String?,
-      itemGroupId: json['groupId'] as int?,
-      itemGroupName: json['groupName'] as String?,
+      itemGroupId: json['groupId'] as int?, // كان مكتوبًا itemGroupId، تأكد من أنه groupId في JSON
+      itemGroupName: json['groupName'] as String?, // كان مكتوبًا itemGroupName، تأكد من أنه groupName في JSON
       desc: json['desc'] as String?,
     );
   }
@@ -177,5 +214,5 @@ class SessionDetail {
   bool get hasImage => image != null && image!.isNotEmpty;
   bool get hasText => text != null && text!.isNotEmpty;
   bool get hasDesc => desc != null && desc!.isNotEmpty;
-  bool get hasVideo => video != null && video!.isNotEmpty; // <--- إضافة getter للفيديو
+  bool get hasVideo => video != null && video!.isNotEmpty;
 }
