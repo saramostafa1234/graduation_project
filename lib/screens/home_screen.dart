@@ -2,24 +2,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// --- استيراد الملفات الضرورية ---
-// تأكد من صحة هذه المسارات في مشروعك
+import '../monthly_test/exercise_flow_screen.dart';
 import 'skills.dart';
- 
-
-import 'package:myfinalpro/widget/side_bar_menu.dart.dart'; // تأكد من اسم الملف الصحيح
-import '../widgets/Notifictionicon.dart'; // تأكد من المسارات والاسم
+import 'package:myfinalpro/widget/side_bar_menu.dart.dart';
+import '../widgets/notifictionicon.dart';
 import '../services/Api_services.dart';
 import '../login/login_view.dart';
 import 'package:myfinalpro/session/session_intro_screen.dart';
 import 'package:myfinalpro/session/models/session_model.dart';
-import 'package:myfinalpro/emotion/sequential_session_screen.dart'; // TrainingSessionsScreen
+import 'package:myfinalpro/emotion/sequential_session_screen.dart';
 import 'package:myfinalpro/screens/start_test_screen.dart';
-// --- استيرادات جديدة ---
-import 'package:myfinalpro/test3months/test_group_model.dart';      // النموذج الجديد
-import 'package:myfinalpro/test3months/group_test_manager_screen.dart'; // شاشة مدير اختبار المجموعة الجديدة
+import 'package:myfinalpro/test3months/test_group_model.dart';
+import 'package:myfinalpro/test3months/group_test_manager_screen.dart';
 
-//import 'package:myfinalpro/notification/notification_cubit.dart'; // إذا كنت تستخدمه
+import '../models/notification_item.dart' as notif_model;
+import '../services/notification_manager.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,11 +38,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Session? _nextSessionData;
   bool _isFetchingTestGroup = false;
 
-  // ---!!! تعديل مدة المؤقت هنا لتصبح دقيقة واحدة !!!---
-  static const sessionCooldownDuration = Duration(minutes: 1); // الآن المؤقت سيعد دقيقة واحدة
-  // static const sessionCooldownDuration = Duration(hours: 48); // هذه كانت القيمة الأصلية الطويلة
-  // ---!!! نهاية التعديل !!!---
-
+  final GlobalKey<NotificationIconState> _notificationIconKey = GlobalKey<NotificationIconState>();
+  //static const sessionCooldownDuration = Duration(hours: 48);
+  static const sessionCooldownDuration = Duration(minutes: 1);
 
   @override
   void initState() {
@@ -68,22 +63,65 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _updateSessionNotifications() async {
+    await NotificationManager.clearSessionNotifications();
+    final prefs = await SharedPreferences.getInstance();
+    final lastSessionTimestamp = prefs.getInt('lastSessionStartTime') ?? 0;
+
+    if (isSessionInProgressOrCoolingDown && lastSessionTimestamp > 0) {
+      final timeSinceLastSessionEnd = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(lastSessionTimestamp));
+      String endedTimeString = "منذ ";
+      if (timeSinceLastSessionEnd.inDays > 0) endedTimeString += "${timeSinceLastSessionEnd.inDays} يوم ";
+      else if (timeSinceLastSessionEnd.inHours > 0) endedTimeString += "${timeSinceLastSessionEnd.inHours} س ";
+      else if (timeSinceLastSessionEnd.inMinutes > 0) endedTimeString += "${timeSinceLastSessionEnd.inMinutes} د ";
+      else endedTimeString += "دقائق قليلة";
+
+      await NotificationManager.addOrUpdateNotification(notif_model.NotificationItem(
+        id: 'session_status_ended',
+        title: "انتهت الجلسة ${endedTimeString.trim()}",
+        timeAgo: notif_model.formatTimeAgo(DateTime.now()),
+        createdAt: DateTime.now(),
+        type: notif_model.NotificationType.sessionEnded,
+      ));
+
+      String remainingTimeString = "";
+      if (remainingTime.inHours > 0) remainingTimeString += "${remainingTime.inHours} س ";
+      if (remainingTime.inMinutes.remainder(60) > 0) remainingTimeString += "${remainingTime.inMinutes.remainder(60)} د";
+
+      if (remainingTimeString.isNotEmpty) {
+        await NotificationManager.addOrUpdateNotification(notif_model.NotificationItem(
+          id: 'session_status_upcoming',
+          title: "تبدأ الجلسة القادمة بعد ${remainingTimeString.trim()}",
+          timeAgo: notif_model.formatTimeAgo(DateTime.now()),
+          createdAt: DateTime.now(),
+          type: notif_model.NotificationType.sessionUpcoming,
+        ));
+      }
+
+    } else if (isSessionAvailable && _nextSessionData != null) {
+      await NotificationManager.addOrUpdateNotification(notif_model.NotificationItem(
+        id: 'session_status_ready',
+        title: "حان وقت الجلسة! (${_nextSessionData?.title ?? 'غير محدد'})",
+        timeAgo: notif_model.formatTimeAgo(DateTime.now()),
+        createdAt: DateTime.now(),
+        type: notif_model.NotificationType.sessionReady,
+      ));
+    }
+    _notificationIconKey.currentState?.refreshNotifications();
+  }
+
   Future<void> _loadTokenAndInitialData() async {
     if (!mounted) return;
-    // أظهر التحميل فقط إذا لم يكن هناك تحميل آخر نشط (مثل تحميل اختبار المجموعة أو المؤقت)
     if (!_isLoading && !_isFetchingTestGroup && (cooldownTimer == null || !cooldownTimer!.isActive)) {
       setStateIfMounted(() {
         _isLoading = true;
         _errorMessage = null;
       });
     } else if (_isLoading && !_isFetchingTestGroup && (cooldownTimer == null || !cooldownTimer!.isActive)){
-      // إذا كان _isLoading بالفعل true (ربما من محاولة سابقة فشلت جزئيًا)
-      // لا تعد تعيينه إلى true مرة أخرى، فقط امسح الخطأ.
-       setStateIfMounted(() {
+      setStateIfMounted(() {
         _errorMessage = null;
       });
     }
-
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -92,12 +130,12 @@ class _HomeScreenState extends State<HomeScreen> {
       if (_jwtToken == null || _jwtToken!.isEmpty) {
         debugPrint("HomeScreen: Token not found. Redirecting...");
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted)
+          if (mounted) {
             Navigator.pushReplacement(context,
                 MaterialPageRoute(builder: (context) => const LoginView()));
+          }
         });
-        // إذا لم يكن هناك توكن، لا داعي لمواصلة تحميل باقي البيانات
-        if (mounted) setStateIfMounted(() => _isLoading = false); // أوقف التحميل
+        if (mounted) setStateIfMounted(() => _isLoading = false);
         return;
       }
       debugPrint("HomeScreen: Token loaded.");
@@ -105,34 +143,74 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
 
       if (!isSessionInProgressOrCoolingDown) {
-        await _fetchNextSessionDataFromApi();
+        // handled by _loadSessionCooldownDataFromPrefs or _fetchNextSessionDataFromApi
       } else {
         if (isSessionAvailable) setStateIfMounted(() => isSessionAvailable = false);
         if (_nextSessionData != null) setStateIfMounted(() => _nextSessionData = null);
       }
-      // TODO: Fetch actual progress data here for emotionProgress and skillsProgress
+
+      if (_nextSessionData != null) {
+        await _checkAndGenerateTestNotificationsFromSessionData(_nextSessionData!);
+      }
+
     } catch (e) {
       debugPrint("Error during initial data load: $e");
-      if (mounted)
+      if (mounted) {
         setStateIfMounted(() {
           _errorMessage = "حدث خطأ أثناء تحميل البيانات.";
         });
+      }
     } finally {
-      // أوقف التحميل العام فقط إذا لم يكن هناك تحميل لاختبار المجموعة قيد التقدم
-      if (mounted && !_isFetchingTestGroup)
+      if (mounted && !_isFetchingTestGroup) {
         setStateIfMounted(() {
           _isLoading = false;
         });
+      }
+      await _updateSessionNotifications();
       debugPrint(
           "HomeScreen: Load finished. Loading: $_isLoading, Error: $_errorMessage, Available: $isSessionAvailable, CoolingDown: $isSessionInProgressOrCoolingDown, FetchingGroup: $_isFetchingTestGroup");
+    }
+  }
+
+  Future<void> _checkAndGenerateTestNotificationsFromSessionData(Session sessionData) async {
+    final monthlyTestApiResponseMessage = sessionData.attributes?['monthly_test_message'] as String?;
+    if (monthlyTestApiResponseMessage != null && monthlyTestApiResponseMessage.isNotEmpty) {
+      bool alreadySent = await NotificationManager.isMonthlyTestNotificationSent();
+      if (!alreadySent) {
+        await NotificationManager.addOrUpdateNotification(notif_model.NotificationItem(
+          id: 'monthly_test_available_from_session',
+          title: monthlyTestApiResponseMessage,
+          timeAgo: notif_model.formatTimeAgo(DateTime.now()),
+          createdAt: DateTime.now(),
+          type: notif_model.NotificationType.monthlyTestAvailable,
+        ));
+        await NotificationManager.setMonthlyTestNotificationSent(true);
+        _notificationIconKey.currentState?.refreshNotifications();
+        debugPrint("HomeScreen: Monthly test notification generated from session data: $monthlyTestApiResponseMessage");
+      }
+    }
+
+    final threeMonthTestApiResponseMessage = sessionData.attributes?['three_month_test_message'] as String?;
+    if (threeMonthTestApiResponseMessage != null && threeMonthTestApiResponseMessage.isNotEmpty) {
+      bool alreadySent = await NotificationManager.isThreeMonthTestNotificationSent();
+      if (!alreadySent) {
+        await NotificationManager.addOrUpdateNotification(notif_model.NotificationItem(
+          id: '3_month_test_available_from_session',
+          title: threeMonthTestApiResponseMessage,
+          timeAgo: notif_model.formatTimeAgo(DateTime.now()),
+          createdAt: DateTime.now(),
+          type: notif_model.NotificationType.threeMonthTestAvailable,
+        ));
+        await NotificationManager.setThreeMonthTestNotificationSent(true);
+        _notificationIconKey.currentState?.refreshNotifications();
+        debugPrint("HomeScreen: 3-Month test notification generated from session data: $threeMonthTestApiResponseMessage");
+      }
     }
   }
 
   Future<void> _loadSessionCooldownDataFromPrefs(SharedPreferences prefs) async {
     final lastSessionTimestamp = prefs.getInt('lastSessionStartTime') ?? 0;
     final currentTime = DateTime.now().millisecondsSinceEpoch;
-    debugPrint(
-        "Current Time: $currentTime / Last Session Ref Timestamp: $lastSessionTimestamp");
     if (lastSessionTimestamp == 0) {
       debugPrint("Cooldown not active (timestamp 0).");
       if (isSessionInProgressOrCoolingDown || remainingTime != Duration.zero) {
@@ -142,6 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
       cooldownTimer?.cancel();
+      await _fetchNextSessionDataFromApi();
       return;
     }
     final elapsedTime = currentTime - lastSessionTimestamp;
@@ -156,32 +235,27 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
       cooldownTimer?.cancel();
+      await _fetchNextSessionDataFromApi();
     } else {
       final remainingMs = sessionCooldownDuration.inMilliseconds - elapsedTime;
-      debugPrint("In cooldown. Remaining ms: $remainingMs");
-      // التحقق قبل استدعاء setState لتجنب الاستدعاءات غير الضرورية
       if (!isSessionInProgressOrCoolingDown || remainingTime.inMilliseconds.round() != remainingMs.round()) {
-          setStateIfMounted(() {
-            isSessionAvailable = false;
-            isSessionInProgressOrCoolingDown = true;
-            remainingTime = Duration(milliseconds: remainingMs);
-          });
+        setStateIfMounted(() {
+          isSessionAvailable = false;
+          isSessionInProgressOrCoolingDown = true;
+          remainingTime = Duration(milliseconds: remainingMs);
+        });
       }
       _startUiUpdateTimer(lastSessionTimestamp);
     }
+    await _updateSessionNotifications();
   }
 
   Future<void> _fetchNextSessionDataFromApi() async {
-    if (isSessionInProgressOrCoolingDown) {
-      debugPrint("Skipping fetch next PENDING session (cooldown active).");
-      return;
-    }
+    if (isSessionInProgressOrCoolingDown) return;
     if (_jwtToken == null) {
       if (mounted) setStateIfMounted(() => _errorMessage = "Token missing.");
       return;
     }
-    debugPrint("Fetching next PENDING session data...");
-    // لا تقم بتعيين _isLoading هنا إذا كان _isFetchingTestGroup صحيحًا
     if (!_isLoading && !_isFetchingTestGroup) setStateIfMounted(() => _isLoading = true);
     try {
       _nextSessionData = await ApiService.getNextPendingSession(_jwtToken!);
@@ -191,18 +265,13 @@ class _HomeScreenState extends State<HomeScreen> {
           isSessionAvailable = true;
           _errorMessage = null;
         });
-        debugPrint("Next PENDING session loaded: ${_nextSessionData?.title}");
+        await _checkAndGenerateTestNotificationsFromSessionData(_nextSessionData!);
       } else {
         setStateIfMounted(() {
           _nextSessionData = null;
           isSessionAvailable = false;
-          // لا تضع رسالة "اكتملت الخطة" هنا مباشرة، قد يكون هناك خطأ آخر
-          // _errorMessage = "اكتملت الخطة التدريبية للجلسات اليومية!";
         });
-        debugPrint("No next PENDING session available or parse error.");
-        // إذا كانت الاستجابة null ولكن لا يوجد خطأ شبكة (مثلاً 204 No Content)
-        // يمكن عرض رسالة "اكتملت الخطة"
-         if (mounted && _errorMessage == null) { // فقط إذا لم يكن هناك خطأ سابق
+        if (mounted && _errorMessage == null) {
           setStateIfMounted(() {
             _errorMessage = "اكتملت الخطة التدريبية للجلسات اليومية!";
           });
@@ -210,17 +279,13 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } on Exception catch (e) {
       if (!mounted) return;
-      debugPrint("Error fetching next PENDING session: $e");
       String errorMsg = "خطأ أثناء جلب الجلسة.";
       if (e.toString().contains('Unauthorized')) {
         errorMsg = "انتهت صلاحية الدخول.";
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted)
-            Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (context) => const LoginView()));
+          if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginView()));
         });
-      } else if (e.toString().contains('Network') ||
-          e.toString().contains('SocketException')) { // تعديل للتحقق من SocketException
+      } else if (e.toString().contains('Network') || e.toString().contains('SocketException')) {
         errorMsg = "خطأ في الاتصال بالشبكة.";
       } else if (e.toString().contains('Timeout')) {
         errorMsg = "انتهت مهلة الطلب.";
@@ -232,14 +297,13 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } finally {
       if (mounted && !_isFetchingTestGroup) setStateIfMounted(() => _isLoading = false);
+      await _updateSessionNotifications();
     }
   }
 
   void _startUiUpdateTimer(int sessionStartTimeRef) {
     cooldownTimer?.cancel();
-    debugPrint(
-        "Starting UI cooldown timer from ref time: $sessionStartTimeRef");
-    updateRemainingTime() {
+    updateRemainingTime() async {
       if (!mounted) {
         cooldownTimer?.cancel();
         return;
@@ -247,20 +311,17 @@ class _HomeScreenState extends State<HomeScreen> {
       final now = DateTime.now().millisecondsSinceEpoch;
       final elapsed = now - sessionStartTimeRef;
       if (elapsed >= sessionCooldownDuration.inMilliseconds) {
-        debugPrint("UI Timer: Cooldown complete.");
         cooldownTimer?.cancel();
-        // التحقق قبل استدعاء setState
         if(isSessionInProgressOrCoolingDown || remainingTime != Duration.zero || isSessionAvailable){
-            setStateIfMounted(() {
-              isSessionInProgressOrCoolingDown = false;
-              remainingTime = Duration.zero;
-              isSessionAvailable = false;
-            });
+          setStateIfMounted(() {
+            isSessionInProgressOrCoolingDown = false;
+            remainingTime = Duration.zero;
+            isSessionAvailable = false;
+          });
         }
-        _fetchNextSessionDataFromApi();
+        await _fetchNextSessionDataFromApi();
       } else {
-        final newRemainingTime =
-            sessionCooldownDuration - Duration(milliseconds: elapsed);
+        final newRemainingTime = sessionCooldownDuration - Duration(milliseconds: elapsed);
         if (remainingTime.inSeconds != newRemainingTime.inSeconds) {
           setStateIfMounted(() {
             if (isSessionInProgressOrCoolingDown) {
@@ -271,13 +332,13 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         }
       }
+      await _updateSessionNotifications();
     }
     if(isSessionInProgressOrCoolingDown){
-        updateRemainingTime();
-        cooldownTimer = Timer.periodic(
-            const Duration(seconds: 1), (timer) => updateRemainingTime());
+      updateRemainingTime();
+      cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) => updateRemainingTime());
     } else {
-        cooldownTimer?.cancel();
+      cooldownTimer?.cancel();
     }
   }
 
@@ -301,29 +362,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _startSession() async {
-    if (!isSessionAvailable || _nextSessionData == null || _jwtToken == null) {
-      return;
-    }
+    if (!isSessionAvailable || _nextSessionData == null || _jwtToken == null) return;
     try {
       final sessionId = _nextSessionData?.id;
-      if (sessionId == null) {
-        debugPrint("HomeScreen _startSession: Session ID is null.");
-        return;
-      }
-      debugPrint("Navigating to Intro Screen for session ID: $sessionId");
+      if (sessionId == null) return;
       if (!mounted) return;
       final sessionResult = await Navigator.push<bool>(
         context,
         MaterialPageRoute(
-          builder: (context) => SessionIntroScreen(
-            session: _nextSessionData!,
-            jwtToken: _jwtToken!,
-          ),
+          builder: (context) => SessionIntroScreen(session: _nextSessionData!, jwtToken: _jwtToken!),
         ),
       );
-      debugPrint("Returned from session flow. Result: $sessionResult");
       if (sessionResult == true && mounted) {
-        debugPrint("Session completed. Starting cooldown.");
         final prefs = await SharedPreferences.getInstance();
         final sessionCompletionTimeMillis = DateTime.now().millisecondsSinceEpoch;
         await prefs.setInt('lastSessionStartTime', sessionCompletionTimeMillis);
@@ -336,17 +386,14 @@ class _HomeScreenState extends State<HomeScreen> {
         });
         _startUiUpdateTimer(sessionCompletionTimeMillis);
       } else if (mounted) {
-        debugPrint("Session not completed or returned false. Reloading home data to check for new PENDING session.");
         if(!isSessionInProgressOrCoolingDown){
-            _fetchNextSessionDataFromApi();
-        } else {
-            // إذا كان لا يزال في فترة التبريد، لا تفعل شيئًا إضافيًا هنا،
-            // المؤقت سيتولى تحديث الحالة عند انتهائه.
+          await _fetchNextSessionDataFromApi();
         }
       }
     } catch (e) {
       debugPrint("Error in _startSession: $e");
     }
+    await _updateSessionNotifications();
   }
 
   Future<void> _startThreeMonthTest() async {
@@ -355,7 +402,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     if (_isFetchingTestGroup) return;
-
     setStateIfMounted(() => _isFetchingTestGroup = true);
     if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري تحميل اختبار الـ 3 شهور..."), duration: Duration(seconds: 1),));
 
@@ -364,23 +410,35 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
 
       if (testGroupData != null && testGroupData.sessions.isNotEmpty) {
+        bool alreadySent = await NotificationManager.isThreeMonthTestNotificationSent();
+        if (!alreadySent) {
+          // استخدام messageFromApi من TestGroupResponse إذا كان متاحًا
+          String notificationMessage = testGroupData.messageFromApi ?? "حان موعد اختبار الـ 3 شهور لـ ${testGroupData.groupName}";
+          await NotificationManager.addOrUpdateNotification(notif_model.NotificationItem(
+            id: '3_month_test_available_${testGroupData.groupId}',
+            title: notificationMessage,
+            timeAgo: notif_model.formatTimeAgo(DateTime.now()),
+            createdAt: DateTime.now(),
+            type: notif_model.NotificationType.threeMonthTestAvailable,
+          ));
+          await NotificationManager.setThreeMonthTestNotificationSent(true);
+          _notificationIconKey.currentState?.refreshNotifications();
+          debugPrint("HomeScreen: 3-Month test notification generated: $notificationMessage");
+        }
+
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => GroupTestManagerScreen(
-              testGroupData: testGroupData,
-              jwtToken: _jwtToken!,
-            ),
+            builder: (context) => GroupTestManagerScreen(testGroupData: testGroupData, jwtToken: _jwtToken!),
           ),
         ).then((_) {
-          debugPrint("Returned from GroupTestManagerScreen. Reloading initial data.");
           _loadTokenAndInitialData();
         });
       } else {
         if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("لا يوجد اختبار 3 شهور متاح حاليًا أو حدث خطأ في التحميل.")),
-            );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("لا يوجد اختبار 3 شهور متاح حاليًا أو حدث خطأ في التحميل.")),
+          );
         }
       }
     } catch (e) {
@@ -403,11 +461,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const Color assessmentTextColor = primaryBlue;
     const Color assessmentButtonBgColor = primaryBlue;
     const Color assessmentButtonFgColor = Colors.white;
-
-    // شرط التحميل العام: إذا كان _isLoading (للجلسات العادية) أو _isFetchingTestGroup (لاختبار المجموعة)
-    // ولم يكن المؤقت نشطًا (لأنه إذا كان نشطًا، يجب أن تعرض الواجهة المؤقت وليس مؤشر تحميل عام)
     bool showGlobalLoading = (_isLoading || _isFetchingTestGroup) && (cooldownTimer == null || !cooldownTimer!.isActive);
-
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -429,194 +483,139 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
-          leading: NotificationIcon(),
+          leading: NotificationIcon(
+            key: _notificationIconKey,
+            onNotificationsUpdated: () {
+              _loadTokenAndInitialData();
+            },
+          ),
         ),
-        body: showGlobalLoading // استخدام شرط التحميل العام هنا
+        body: showGlobalLoading
             ? const Center(child: CircularProgressIndicator(color: primaryBlue))
             : RefreshIndicator(
-                onRefresh: _loadTokenAndInitialData,
-                color: primaryBlue,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  children: [
-                    const Center(
-                        child: Text('مرحبا !',
-                            style: TextStyle(
-                                fontSize: 28,
-                                color: primaryBlue,
-                                fontFamily: 'Cairo',
-                                fontWeight: FontWeight.bold))),
-                    const SizedBox(height: 20),
-
-                    if (_errorMessage != null && !isSessionInProgressOrCoolingDown && !_isFetchingTestGroup) // لا تعرض الخطأ إذا كان المؤقت يعمل أو يتم جلب اختبار المجموعة
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 15.0),
-                        child: Center(
-                            child: Text(_errorMessage!,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    color: _errorMessage!.contains("اكتملت")
-                                        ? Colors.green.shade700
-                                        : Colors.redAccent,
-                                    fontFamily: 'Cairo',
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500))),
-                      ),
-
-                    Container(
-                       width: double.infinity,
-                      constraints: const BoxConstraints(minHeight: 112),
-                      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-                      decoration: BoxDecoration(
-                          color: primaryBlue,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5, offset: Offset(0,2))]
-                      ),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        transitionBuilder: (Widget child, Animation<double> animation) =>
-                            FadeTransition(opacity: animation, child: child),
-                        child: isSessionInProgressOrCoolingDown
-                            ? Column(
-                                key: const ValueKey('timer_view'),
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text('تبقى على الجلسة القادمة', style: TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 10),
-                                  Text(_convertToArabicNumbers(formatDuration(remainingTime)), style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold, fontFamily: 'monospace'), textDirection: TextDirection.ltr, textAlign: TextAlign.center),
-                                  const SizedBox(height: 6),
-                                  const Text('ساعة : دقيقة : ثانية', style: TextStyle(color: Colors.white70, fontSize: 14, fontFamily: 'Cairo'), textAlign: TextAlign.center),
-                                ],
-                              )
-                            : Container(
-                                key: const ValueKey('start_view'),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Expanded(
-                                      flex: 5,
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.center,
-                                        children: [
-                                          const Text('حان وقت الجلسة!', style: TextStyle(color: Colors.white, fontSize: 19, fontFamily: 'Cairo', fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                                          const SizedBox(height: 18),
-                                          ElevatedButton(
-                                            onPressed: (isSessionAvailable && !_isFetchingTestGroup) ? _startSession : null, // تعطيل إذا كان اختبار المجموعة يحمل
-                                            style: ElevatedButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 45, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), disabledBackgroundColor: Colors.white.withAlpha(178), disabledForegroundColor: primaryBlue.withAlpha(128), elevation: 3),
-                                            child: Text('لنبدأ', style: TextStyle(color: (isSessionAvailable && !_isFetchingTestGroup) ? primaryBlue : Colors.grey.shade400, fontSize: 17, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Expanded(
-                                      flex: 4,
-                                      child: Image.asset("assets/images/session.png", height: 90, fit: BoxFit.contain, errorBuilder: (ctx, err, st) => const SizedBox( height: 90, child: Center(child: Icon(Icons.image_not_supported, color: Colors.white54, size: 50)))),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          onRefresh: _loadTokenAndInitialData,
+          color: primaryBlue,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            children: [
+              const Center(child: Text('مرحبا !', style: TextStyle(fontSize: 28, color: primaryBlue, fontFamily: 'Cairo', fontWeight: FontWeight.bold))),
+              const SizedBox(height: 20),
+              if (_errorMessage != null && !isSessionInProgressOrCoolingDown && !_isFetchingTestGroup)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 15.0),
+                  child: Center(child: Text(_errorMessage!, textAlign: TextAlign.center, style: TextStyle(color: _errorMessage!.contains("اكتملت") ? Colors.green.shade700 : Colors.redAccent, fontFamily: 'Cairo', fontSize: 16, fontWeight: FontWeight.w500))),
+                ),
+              Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(minHeight: 112),
+                padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+                decoration: BoxDecoration(color: primaryBlue, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5, offset: const Offset(0,2))]),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (Widget child, Animation<double> animation) => FadeTransition(opacity: animation, child: child),
+                  child: isSessionInProgressOrCoolingDown
+                      ? Column(
+                    key: const ValueKey('timer_view'),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('تبقى على الجلسة القادمة', style: TextStyle(color: Colors.white, fontSize: 18, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 10),
+                      Text(_convertToArabicNumbers(formatDuration(remainingTime)), style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold, fontFamily: 'monospace'), textDirection: TextDirection.ltr, textAlign: TextAlign.center),
+                      const SizedBox(height: 6),
+                      const Text('ساعة : دقيقة : ثانية', style: TextStyle(color: Colors.white70, fontSize: 14, fontFamily: 'Cairo'), textAlign: TextAlign.center),
+                    ],
+                  )
+                      : Container(
+                    key: const ValueKey('start_view'),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Expanded(
-                          child: _buildAssessmentCard(
-                            title: 'التقييم الشهري',
-                            subtitle: 'تقييم شهري وكل ثلاثة أشهر لمتابعة التقدم.',
-                            buttonText: 'ابدأ الاختبار',
-                            onPressed: _isFetchingTestGroup ? null : () { // تعطيل إذا كان اختبار المجموعة يحمل
-                               Navigator.push(context, MaterialPageRoute(
-                                   builder: (context) => Timetest()
-                               ));
-                            },
-                            isLoading: false,
-                            cardBgColor: assessmentCardBgColor,
-                            textColor: assessmentTextColor,
-                            buttonBgColor: assessmentButtonBgColor,
-                            buttonFgColor: assessmentButtonFgColor,
+                          flex: 5,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text('حان وقت الجلسة${_nextSessionData?.title != null ? " (${_nextSessionData!.title})" : "!"}', style: const TextStyle(color: Colors.white, fontSize: 19, fontFamily: 'Cairo', fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                              const SizedBox(height: 18),
+                              ElevatedButton(
+                                onPressed: (isSessionAvailable && !_isFetchingTestGroup) ? _startSession : null,
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 45, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), disabledBackgroundColor: Colors.white.withAlpha(178), disabledForegroundColor: primaryBlue.withAlpha(128), elevation: 3),
+                                child: Text('لنبدأ', style: TextStyle(color: (isSessionAvailable && !_isFetchingTestGroup) ? primaryBlue : Colors.grey.shade400, fontSize: 17, fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
+                              ),
+                            ],
                           ),
                         ),
-
-                        const SizedBox(width: 12),
-
                         Expanded(
-                          child: _buildAssessmentCard(
-                            title: 'اختبار الـ 3 شهور',
-                            subtitle: 'تقييم شامل كل ثلاثة أشهر لمتابعة التطور العام.',
-                            buttonText: 'ابدأ الاختبار',
-                            onPressed: _startThreeMonthTest, // الدالة موجودة بالفعل
-                            isLoading: _isFetchingTestGroup,
-                            cardBgColor: assessmentCardBgColor,
-                            textColor: assessmentTextColor,
-                            buttonBgColor: assessmentButtonBgColor,
-                            buttonFgColor: assessmentButtonFgColor,
-                          ),
+                          flex: 4,
+                          child: Image.asset("assets/images/session.png", height: 90, fit: BoxFit.contain, errorBuilder: (ctx, err, st) => const SizedBox( height: 90, child: Center(child: Icon(Icons.image_not_supported, color: Colors.white54, size: 50)))),
                         ),
                       ],
                     ),
-
-                    const SizedBox(height: 24),
-                    const Padding(
-                      padding: EdgeInsets.only(right: 8.0, bottom: 6.0),
-                      child: Text('تطوير المهارات وإدارة الانفعالات',
-                          style: TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'Cairo',
-                              color: primaryBlue)),
-                    ),
-                    _buildProgressCard(
-                        'الانفعالات',
-                        'تمارين للتعرف على المشاعر وإدارتها بفعالية.',
-                        emotionProgress,
-                        primaryBlue,
-                        () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => TrainingSessionsScreen()))),
-                    const SizedBox(height: 12),
-                    _buildProgressCard(
-                        'تنمية المهارات',
-                        'استكشف تمارين قيمة لتطوير مهاراتك الشخصية والاجتماعية!',
-                        skillsProgress,
-                        const Color(0xFF4CAF50),
-                        () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => SkillsScreen()))),
-                    const SizedBox(height: 40),
-                  ],
+                  ),
                 ),
               ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _buildAssessmentCard(
+                      title: 'التقييم الشهري',
+                      subtitle: 'تقييم شهري وكل ثلاثة أشهر لمتابعة التقدم.',
+                      buttonText: 'ابدأ الاختبار',
+                      onPressed: _isFetchingTestGroup ? null : () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ExerciseFlowScreen())).then((value) {
+                          _notificationIconKey.currentState?.refreshNotifications();
+                          _loadTokenAndInitialData();
+                        });
+                      },
+                      isLoading: false,
+                      cardBgColor: assessmentCardBgColor,
+                      textColor: assessmentTextColor,
+                      buttonBgColor: assessmentButtonBgColor,
+                      buttonFgColor: assessmentButtonFgColor,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildAssessmentCard(
+                      title: 'اختبار الـ 3 شهور',
+                      subtitle: 'تقييم شامل كل ثلاثة أشهر لمتابعة التطور العام.',
+                      buttonText: 'ابدأ الاختبار',
+                      onPressed: _startThreeMonthTest,
+                      isLoading: _isFetchingTestGroup,
+                      cardBgColor: assessmentCardBgColor,
+                      textColor: assessmentTextColor,
+                      buttonBgColor: assessmentButtonBgColor,
+                      buttonFgColor: assessmentButtonFgColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Padding(
+                padding: EdgeInsets.only(right: 8.0, bottom: 6.0),
+                child: Text('تطوير المهارات وإدارة الانفعالات', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, fontFamily: 'Cairo', color: primaryBlue)),
+              ),
+              _buildProgressCard('الانفعالات', 'تمارين للتعرف على المشاعر وإدارتها بفعالية.',/* emotionProgress*/ primaryBlue, () => Navigator.push(context, MaterialPageRoute(builder: (context) => TrainingSessionsScreen()))),
+              const SizedBox(height: 12),
+              _buildProgressCard('تنمية المهارات', 'استكشف تمارين قيمة لتطوير مهاراتك الشخصية والاجتماعية!',/* skillsProgress*/ primaryBlue, () => Navigator.push(context, MaterialPageRoute(builder: (context) => SkillsScreen()))),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildAssessmentCard({
-    required String title,
-    required String subtitle,
-    required String buttonText,
-    required VoidCallback? onPressed,
-    required bool isLoading,
-    required Color cardBgColor,
-    required Color textColor,
-    required Color buttonBgColor,
-    required Color buttonFgColor,
-  }) {
+  Widget _buildAssessmentCard({ required String title, required String subtitle, required String buttonText, required VoidCallback? onPressed, required bool isLoading, required Color cardBgColor, required Color textColor, required Color buttonBgColor, required Color buttonFgColor, }) {
     return Container(
       constraints: const BoxConstraints(minHeight: 175),
       padding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
-      decoration: BoxDecoration(
-          color: cardBgColor,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: Offset(0,1))]
-      ),
+      decoration: BoxDecoration(color: cardBgColor, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0,1))]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -624,23 +623,9 @@ class _HomeScreenState extends State<HomeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Cairo',
-                    color: textColor),
-              ),
+              Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, fontFamily: 'Cairo', color: textColor)),
               const SizedBox(height: 5),
-              Text(
-                subtitle,
-                style: TextStyle(
-                    color: textColor.withOpacity(0.75),
-                    fontSize: 13,
-                    fontFamily: 'Cairo',
-                    height: 1.3),
-              ),
+              Text(subtitle, style: TextStyle(color: textColor.withOpacity(0.75), fontSize: 13, fontFamily: 'Cairo', height: 1.3)),
             ],
           ),
           const SizedBox(height: 12),
@@ -648,16 +633,8 @@ class _HomeScreenState extends State<HomeScreen> {
             alignment: Alignment.centerLeft,
             child: ElevatedButton(
               onPressed: isLoading ? null : onPressed,
-              child: isLoading
-                  ? const SizedBox(width:18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white,))
-                  : Text(buttonText, style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w600, fontSize: 13)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: buttonBgColor,
-                foregroundColor: buttonFgColor,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-              ),
+              child: isLoading ? const SizedBox(width:18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white,)) : Text(buttonText, style: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w600, fontSize: 13)),
+              style: ElevatedButton.styleFrom(backgroundColor: buttonBgColor, foregroundColor: buttonFgColor, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
             ),
           ),
         ],
@@ -665,8 +642,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildProgressCard(String title, String subtitle, double progress, Color color, VoidCallback onTap) {
-    final String progressPercent = "${(progress * 100).toInt()}٪";
+  Widget _buildProgressCard(String title, String subtitle, /*double progress*/Color color, VoidCallback onTap) {
+    //final String progressPercent = "${(progress * 100).toInt()}٪";
     return Card(
       color: Colors.white,
       elevation: 1.5,
@@ -683,44 +660,23 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(title,
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: color,
-                          fontFamily: 'Cairo',
-                          fontSize: 17)),
-                  Icon(Icons.arrow_forward_ios,
-                      size: 18, color: color.withOpacity(0.8)),
+                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontFamily: 'Cairo', fontSize: 17)),
+                  Icon(Icons.arrow_forward_ios, size: 18, color: color.withOpacity(0.8)),
                 ],
               ),
               const SizedBox(height: 5),
-              Text(
-                subtitle,
-                style: const TextStyle(color: Color(0xff555555), fontSize: 14, fontFamily: 'Cairo', height: 1.3),
-              ),
+              Text(subtitle, style: const TextStyle(color: Color(0xff555555), fontSize: 14, fontFamily: 'Cairo', height: 1.3)),
               const SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
                     child: ClipRRect(
                       borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 10,
-                        backgroundColor: Colors.grey[200],
-                        color: color,
-                      ),
+                      //child: LinearProgressIndicator(value: progress, minHeight: 10, backgroundColor: Colors.grey[200], color: color),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    _convertToArabicNumbers(progressPercent),
-                    style: TextStyle(
-                        fontSize: 14,
-                        color: const Color(0xff333333),
-                        fontFamily: 'Cairo',
-                        fontWeight: FontWeight.bold),
-                  ),
+                  //Text(_convertToArabicNumbers(progressPercent), style: const TextStyle(fontSize: 14, color: Color(0xff333333), fontFamily: 'Cairo', fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 5),
