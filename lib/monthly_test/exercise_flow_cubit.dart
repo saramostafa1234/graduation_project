@@ -1,4 +1,6 @@
-// lib/cubit/exercise_flow_cubit.dart
+// lib/monthly_test/exercise_flow_cubit.dart
+import 'dart:async';
+import 'dart:math';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:myfinalpro/core/errors/failures.dart';
@@ -6,11 +8,10 @@ import 'package:myfinalpro/core/errors/failures.dart';
 import 'package:myfinalpro/monthly_test/test_detail.dart';
 import 'package:myfinalpro/services/Api_services.dart';
 import 'package:myfinalpro/services/asset_service.dart';
-import 'package:flutter/material.dart'; // For debugPrint
+
+import 'package:flutter/foundation.dart';
 
 import 'exercise_flow_state.dart';
-
-// --- استيرادات جديدة للإشعارات ---
 import '../models/notification_item.dart' as notif_model;
 import '../services/notification_manager.dart';
 import 'monthly_test_response.dart';
@@ -22,81 +23,43 @@ class ExerciseFlowCubit extends Cubit<ExerciseFlowState> {
 
   List<TestDetail> _detailsList = [];
   List<TestDetail> _newDetailsList = [];
-  List<TestDetail> _combinedList = [];
 
   int? _mainSessionId;
   String? _monthlyTestTitle;
   int _currentStepIndex = -1;
 
+
   final int totalSteps = 4;
 
   ExerciseFlowCubit(this.apiService, {this.randomAssetFolderPath = 'assets/objects/'})
-      : super(ExerciseFlowInitial()) {
-    print("onCreate -- ExerciseFlowCubit");
+      : super(const ExerciseFlowInitial()) {
+    debugPrint("onCreate -- ExerciseFlowCubit initialized with randomAssetFolderPath: $randomAssetFolderPath");
   }
 
   Future<void> fetchMonthlyTest() async {
-    print("Cubit: Fetching monthly test...");
-    emit(ExerciseFlowLoading());
+    debugPrint("Cubit: Fetching monthly test details...");
+    emit(const ExerciseFlowLoading());
+
     final Either<Failure, MonthlyTestResponse> result =
     await apiService.getMonthlyTestDetails();
 
     result.fold(
-          (failure) {
-        print("Cubit Error fetching test: ${failure.message}");
-        emit(ExerciseFlowError("فشل تحميل الاختبار: ${failure.message}"));
+      (failure) {
+        debugPrint("Cubit Error fetching monthly test: ${failure.message}");
+        emit(ExerciseFlowError("فشل تحميل الاختبار الشهري: ${failure.message}"));
       },
-          (testResponse) async {
+      (testResponse) {
         _detailsList = testResponse.details;
         _newDetailsList = testResponse.newDetails;
-        _combinedList = testResponse.getAllExercises();
         _mainSessionId = testResponse.sessionId;
         _monthlyTestTitle = testResponse.title;
 
-        print(
-            "Cubit: Fetched ${_detailsList.length} details, ${_newDetailsList.length} newDetails. Total: ${_combinedList.length}. Session ID: $_mainSessionId, Title: $_monthlyTestTitle");
-
-        // --- إنشاء إشعار اختبار الشهر ---
-        // سيتم استخدام testResponse.messageFromApi إذا كان موجودًا، وإلا سيتم بناء رسالة افتراضية
-        String? effectiveMonthlyTestMessage = testResponse.messageFromApi;
-
-        // إذا لم تكن هناك رسالة مباشرة من الـ API، ولكن لدينا عنوان للاختبار، نبني رسالة
-        if ((effectiveMonthlyTestMessage == null || effectiveMonthlyTestMessage.isEmpty) &&
-            _monthlyTestTitle != null && _monthlyTestTitle!.isNotEmpty) {
-          effectiveMonthlyTestMessage = "قم بأداء اختبار الشهر لـ ${_monthlyTestTitle!}";
-        }
-        // إذا كان SessionId في الـ JSON الرئيسي للـ response (كما في مثالك)،
-        // يمكن قراءته من testResponse.sessionId أيضًا.
-        // int? testSessionIdForNotification = testResponse.sessionId; (هذا هو _mainSessionId بالفعل)
-
-
-        if (effectiveMonthlyTestMessage != null && effectiveMonthlyTestMessage.isNotEmpty && _mainSessionId != null) {
-          bool alreadySent = await NotificationManager.isMonthlyTestNotificationSent();
-          if (!alreadySent) {
-            await NotificationManager.addOrUpdateNotification(notif_model.NotificationItem(
-              id: 'monthly_test_available_${_mainSessionId}',
-              title: effectiveMonthlyTestMessage,
-              timeAgo: notif_model.formatTimeAgo(DateTime.now()),
-              createdAt: DateTime.now(),
-              type: notif_model.NotificationType.monthlyTestAvailable,
-            ));
-            await NotificationManager.setMonthlyTestNotificationSent(true);
-            debugPrint("ExerciseFlowCubit: Monthly test notification generated: $effectiveMonthlyTestMessage");
-          }
-        }
-        // --- نهاية إنشاء الإشعار ---
+        debugPrint(
+            "Cubit: Fetched monthly test. Details: ${_detailsList.length}, NewDetails: ${_newDetailsList.length}. Session ID: $_mainSessionId, Title: $_monthlyTestTitle");
 
         if (_detailsList.isEmpty) {
-          print("Cubit Error: 'details' list is empty. Cannot proceed.");
-          emit(ExerciseFlowError(
-              "لا توجد بيانات أساسية (details) متاحة للاختبار."));
-          return;
-        }
-        if (_newDetailsList.isEmpty && totalSteps > 2) {
-          print(
-              "Cubit Error: 'newDetails' list is empty, but needed for step 3. Cannot proceed with all steps.");
-          emit(ExerciseFlowError(
-              "لا توجد بيانات إضافية (newDetails) متاحة لإكمال جميع خطوات الاختبار."));
+          debugPrint("Cubit Error: 'details' list is empty. Cannot proceed with the test.");
+          emit(const ExerciseFlowError("لا توجد بيانات أساسية (details) متاحة للاختبار الشهري."));
           return;
         }
 
@@ -112,23 +75,19 @@ class ExerciseFlowCubit extends Cubit<ExerciseFlowState> {
       return;
     }
     if (stepIndex < 0) {
-      emit(ExerciseFlowError("خطأ داخلي: رقم خطوة غير صالح."));
-      return;
-    }
-
-    if (_detailsList.isEmpty || (_newDetailsList.isEmpty && stepIndex >= 2 && totalSteps > 2)) {
-      print(
-          "Cubit Error: Cannot prepare step $stepIndex, required lists are empty (_detailsList: ${_detailsList.length}, _newDetailsList: ${_newDetailsList.length}).");
-      emit(ExerciseFlowError(
-          "لا توجد بيانات كافية متاحة لتحضير الخطوة ${stepIndex + 1}."));
+      emit(const ExerciseFlowError("خطأ داخلي: رقم خطوة التمرين غير صالح."));
       return;
     }
 
     _currentStepIndex = stepIndex;
     final int detailsSize = _detailsList.length;
-    final int newDetailsSize = _newDetailsList.isNotEmpty ? _newDetailsList.length : 0;
-    print(
-        "Cubit: Preparing step $stepIndex... (Details size: $detailsSize, NewDetails size: $newDetailsSize)");
+    final int newDetailsSize = _newDetailsList.length;
+    debugPrint("Cubit: Preparing exercise step $stepIndex... (Details available: $detailsSize, NewDetails available: $newDetailsSize)");
+
+    if (detailsSize == 0) {
+      emit(const ExerciseFlowError("لا توجد بيانات أساسية (details) للاختبار."));
+      return;
+    }
 
     try {
       StepDisplayType displayType;
@@ -138,108 +97,148 @@ class ExerciseFlowCubit extends Cubit<ExerciseFlowState> {
       List<String> answerOptions = [];
       String correctAnswerIdentifier;
 
-      TestDetail detailItem, newItem, primaryItem, secondaryItem;
+      TestDetail detailItem1ForStep0, detailItem1ForStep1, detailItem1ForStep2, primaryItemForStep3;
+
 
       switch (stepIndex) {
         case 0:
-          detailItem = _detailsList[0 % detailsSize];
+          detailItem1ForStep0 = _detailsList[0];
           displayType = StepDisplayType.singleItemWithOptions;
-          question = detailItem.question ?? "ما هو شعور هذا الشخص؟";
-          item1 = _createDisplayItem(detailItem);
-          answerOptions = detailItem.answerOptions;
-          correctAnswerIdentifier = detailItem.rightAnswer ?? '';
-          if (correctAnswerIdentifier.isEmpty || answerOptions.isEmpty) {
-            throw Exception("بيانات الإجابات أو الخيارات مفقودة للخطوة 1.");
+          question = detailItem1ForStep0.question ?? "ما هو شعور هذا الشخص؟";
+          item1 = _createDisplayItem(detailItem1ForStep0);
+          answerOptions = detailItem1ForStep0.answerOptions;
+          correctAnswerIdentifier = detailItem1ForStep0.rightAnswer ?? '';
+          if (correctAnswerIdentifier.isEmpty && answerOptions.isNotEmpty) {
+             correctAnswerIdentifier = answerOptions[0];
+             debugPrint("Warning (Step 0): rightAnswer was null or empty, defaulting to first option: '$correctAnswerIdentifier'");
+          } else if (correctAnswerIdentifier.isEmpty || answerOptions.isEmpty) {
+            throw Exception("بيانات الخطوة 1 مفقودة (الاختبار الشهري - سؤال أو خيارات).");
           }
           break;
 
         case 1:
-          detailItem =
-          _detailsList[1 % detailsSize];
+          if (detailsSize < 2) {
+            emit(const ExerciseFlowError("لا توجد بيانات كافية للخطوة 2 (تحتاج عنصرين في details).")); return;
+          }
+          detailItem1ForStep1 = _detailsList[1];
           displayType = StepDisplayType.singleItemWithOptions;
-          question = detailItem.question ?? "ما هو شعور هذا الشخص؟";
-          item1 = _createDisplayItem(detailItem);
-          answerOptions = detailItem.answerOptions;
-          correctAnswerIdentifier = detailItem.rightAnswer ?? '';
-          if (correctAnswerIdentifier.isEmpty || answerOptions.isEmpty) {
-            throw Exception("بيانات الإجابات أو الخيارات مفقودة للخطوة 2.");
+          question = detailItem1ForStep1.question ?? "ما هو شعور هذا الشخص؟";
+          item1 = _createDisplayItem(detailItem1ForStep1);
+          answerOptions = detailItem1ForStep1.answerOptions;
+          correctAnswerIdentifier = detailItem1ForStep1.rightAnswer ?? '';
+           if (correctAnswerIdentifier.isEmpty && answerOptions.isNotEmpty) {
+             correctAnswerIdentifier = answerOptions[0];
+             debugPrint("Warning (Step 1): rightAnswer was null or empty, defaulting to first option: '$correctAnswerIdentifier'");
+          } else if (correctAnswerIdentifier.isEmpty || answerOptions.isEmpty) {
+            throw Exception("بيانات الخطوة 2 مفقودة (الاختبار الشهري - سؤال أو خيارات).");
           }
           break;
 
         case 2:
           if (newDetailsSize == 0) {
-            emit(ExerciseFlowError("لا توجد بيانات (newDetails) للخطوة 3."));
-            return;
+            emit(const ExerciseFlowError("لا توجد بيانات (newDetails) للخطوة 3.")); return;
           }
-          print("Cubit: Step 2 (Index 2) - Details vs NewDetails scenario.");
-          detailItem = _detailsList[2 % detailsSize];
-          newItem = _newDetailsList[0 % newDetailsSize];
+          detailItem1ForStep2 = _detailsList[min(2, detailsSize - 1)];
+          final TestDetail newItemForDistractionStep2 = _newDetailsList[0];
 
           displayType = StepDisplayType.twoItemsChoice;
-          question = detailItem.question ?? "اختر العنصر المناسب";
-          item1 = _createDisplayItem(detailItem);
-          item2 = _createDisplayItem(newItem);
+          String tempRightAnswerTextForQ2 = detailItem1ForStep2.rightAnswer?.trim() ?? '';
+          String rightAnswerTextForQuestion2 = tempRightAnswerTextForQ2.isNotEmpty ? tempRightAnswerTextForQ2 : (_monthlyTestTitle ?? "المطلوب");
+          question = "من يكون $rightAnswerTextForQuestion2؟";
+
+          item1 = _createDisplayItem(detailItem1ForStep2);
+          item2 = _createDisplayItem(newItemForDistractionStep2);
           correctAnswerIdentifier = item1.identifier;
 
           if (item1.identifier == item2.identifier) {
-            print(
-                "Info: Items for step 2 might be the same (Details[${2 % detailsSize}] vs NewDetails[${0 % newDetailsSize}]). Identifier: '${item1.identifier}'.");
+            debugPrint("Warning (Cubit - Step 2/Q3): Correct item and distractor might be identical: '${item1.identifier}'. Consider providing distinct newDetail.");
           }
           break;
 
         case 3:
-          print("Cubit: Step 3 (Index 3) - Checking primary item type...");
-          primaryItem = _detailsList[3 % detailsSize];
-          final String primaryType =
-              primaryItem.dataTypeOfContent?.toLowerCase() ?? 'img';
+          primaryItemForStep3 = _detailsList[min(3, detailsSize - 1)];
+          // dataTypeOfContent in TestDetail is String?, so ?. is correct and safe.
+          // If analyzer still warns, it might be a false positive or overly aggressive.
+          // ignore: invalid_null_aware_operator
+          final String primaryType = primaryItemForStep3.dataTypeOfContent?.toLowerCase() ?? 'img';
+
+          String tempRightAnswerTextForQ3 = primaryItemForStep3.rightAnswer?.trim() ?? '';
+          String rightAnswerTextForQuestion3 = tempRightAnswerTextForQ3.isNotEmpty ? tempRightAnswerTextForQ3 : (_monthlyTestTitle ?? "المطلوب");
+          question = "من يكون $rightAnswerTextForQuestion3؟";
+
+          displayType = StepDisplayType.twoItemsChoice;
+          item1 = _createDisplayItem(primaryItemForStep3);
+          correctAnswerIdentifier = item1.identifier;
 
           if (primaryType == 'text') {
-            print("Cubit: Step 3 (Index 3) - Text vs Text scenario.");
-            secondaryItem = _detailsList[4 % detailsSize];
-
-            displayType = StepDisplayType.twoItemsChoice;
-            question = primaryItem.question ?? "اختر الموقف الصحيح";
-            item1 = _createDisplayItem(primaryItem);
-            item2 = _createDisplayItem(secondaryItem);
-            correctAnswerIdentifier = item1.identifier;
-
-            if (secondaryItem.dataTypeOfContent?.toLowerCase() != 'text') {
-              print(
-                  "Warning: Step 3 (Index 3) - Expected Text vs Text, but secondary item (details index ${4 % detailsSize}) is type '${secondaryItem.dataTypeOfContent}'. Displaying it anyway.");
+            debugPrint("Cubit: Step 3 (idx 3/Q4) - Text primary. Finding text distractor.");
+            TestDetail? textDistractor;
+            if (newDetailsSize > 0) {
+              for (var ndItem in _newDetailsList) {
+                // ignore: invalid_null_aware_operator
+                if (ndItem.dataTypeOfContent?.toLowerCase() == 'text' && _createDisplayItem(ndItem).identifier != item1.identifier) {
+                  textDistractor = ndItem;
+                  break;
+                }
+              }
             }
-            if (item1.identifier == item2.identifier) {
-              print(
-                  "Info: Text items for step 3 might be the same due to list wrapping (details indices ${3 % detailsSize} & ${4 % detailsSize}). Identifier: '${item1.identifier}'.");
+            if (textDistractor == null && detailsSize > 0) {
+                for(var dItem in _detailsList) {
+                    // ignore: invalid_null_aware_operator
+                    if (dItem.id != primaryItemForStep3.id && dItem.dataTypeOfContent?.toLowerCase() == 'text') {
+                        if(_createDisplayItem(dItem).identifier != item1.identifier) {
+                           textDistractor = dItem;
+                           break;
+                        }
+                    }
+                }
+            }
+
+            if (textDistractor != null) {
+              item2 = _createDisplayItem(textDistractor);
+              debugPrint("Cubit: Step 3 (idx 3/Q4) - Text vs Text. Correct: '${item1.identifier}', Distractor: '${item2?.identifier}'");
+            } else {
+              debugPrint("Cubit Error: No suitable text distractor found for step 3 (idx 3/Q4).");
+              emit(const ExerciseFlowError("لا توجد بيانات نصية كافية (كمشتت) للخطوة الرابعة."));
+              return;
             }
           } else {
-            print("Cubit: Step 3 (Index 3) - Image vs Random Asset scenario.");
-            displayType = StepDisplayType.twoItemsChoice;
-            question = primaryItem.question ?? "اختر الصورة الصحيحة";
-            item1 = _createDisplayItem(primaryItem);
-            correctAnswerIdentifier = item1.identifier;
+            debugPrint("Cubit: Step 3 (idx 3/Q4) - Image primary. Requesting random image distractor from service path: $randomAssetFolderPath");
+            emit(const ExerciseFlowLoadingDistractor());
 
-            emit(ExerciseFlowLoadingDistractor());
             String? randomAssetPath;
             try {
-              randomAssetPath =
-              await _loadRandomObjectDistractor(randomAssetFolderPath);
-              if (randomAssetPath == null) {
-                throw Exception("فشل تحميل صورة المشتت العشوائية.");
-              }
-              print("Cubit: Random asset loaded for step 3: $randomAssetPath");
-              item2 = DisplayItem(
-                  type: 'Img',
-                  content: randomAssetPath,
-                  identifier: randomAssetPath);
+              randomAssetPath = await getRandomAssetPathFromFolder(randomAssetFolderPath);
 
-              if (item1.identifier == item2.identifier) {
-                print(
-                    "Warning: Random asset is the same as backend image for step 3 ('${item1.identifier}').");
+              if (randomAssetPath == null) {
+                debugPrint("Cubit Error: getRandomAssetPathFromFolder returned null for folder: $randomAssetFolderPath");
+                throw Exception("فشل تحميل صورة المشتت العشوائية (المجلد فارغ أو خطأ في المسار).");
               }
+
+              int attemptsToGetDifferent = 0;
+              while(randomAssetPath == item1.identifier && attemptsToGetDifferent < 3) {
+                  debugPrint("Cubit Warning: Random distractor '$randomAssetPath' is same as correct item '${item1.identifier}'. Retrying...");
+                  await Future.delayed(const Duration(milliseconds: 50));
+                  randomAssetPath = await getRandomAssetPathFromFolder(randomAssetFolderPath);
+                  attemptsToGetDifferent++;
+                  if(randomAssetPath == null) {
+                      throw Exception("فشل تحميل صورة المشتت العشوائية بعد محاولات التفادي.");
+                  }
+              }
+              if(randomAssetPath == item1.identifier) {
+                  debugPrint("Cubit Warning: Could not get a different distractor after $attemptsToGetDifferent attempts. Proceeding with potentially same image.");
+              }
+
+              // After the checks, if randomAssetPath is not null, we can use '!'
+              // This assumes DisplayItem constructor expects String for content and identifier
+              if (randomAssetPath == null) { // Final safety check, should be caught above
+                  throw Exception("فشل نهائي في تحميل مسار المشتت العشوائي.");
+              }
+              item2 = DisplayItem(type: 'Img', content: randomAssetPath!, identifier: randomAssetPath!, originalDetailIdForApi: -99);
+              debugPrint("Cubit: Step 3 (idx 3/Q4) - Image vs Image. Correct: '${item1.identifier}', Distractor: '${item2.identifier}'");
             } catch (e) {
-              print("Cubit Error loading random asset: $e");
-              emit(ExerciseFlowError(
-                  "خطأ أثناء تحميل الصورة العشوائية: ${e.toString()}"));
+              debugPrint("Cubit Error (Step 3 Img Distractor via service): $e");
+              emit(ExerciseFlowError("خطأ تحميل صورة المشتت: ${e.toString().replaceFirst("Exception: ", "")}"));
               return;
             }
           }
@@ -250,172 +249,118 @@ class ExerciseFlowCubit extends Cubit<ExerciseFlowState> {
       }
 
       emit(ExerciseStepLoaded(
-        currentStepIndex: stepIndex,
-        displayType: displayType,
-        question: question,
-        mainSessionId: _mainSessionId,
-        item1: item1,
-        item2: item2,
-        answerOptions: answerOptions,
-        correctAnswerIdentifier: correctAnswerIdentifier,
+        currentStepIndex: _currentStepIndex,
+        displayType: displayType, question: question,
+        mainSessionId: _mainSessionId, item1: item1, item2: item2,
+        answerOptions: answerOptions, correctAnswerIdentifier: correctAnswerIdentifier,
       ));
-      print(
-          "Cubit: Emitted ExerciseStepLoaded for step $stepIndex. Type: $displayType");
+      debugPrint("Cubit: Emitted Loaded for step $_currentStepIndex. Q: '$question'. CorrectID: '$correctAnswerIdentifier'");
+
     } catch (e, s) {
-      print("Cubit Error preparing step $stepIndex: $e\n$s");
-      emit(ExerciseFlowError("حدث خطأ أثناء تحضير الخطوة ${stepIndex + 1}: ${e.toString()}"));
+      debugPrint("Cubit Error preparing step $_currentStepIndex: $e\n$s");
+      emit(ExerciseFlowError("خطأ تحضير الخطوة ${_currentStepIndex + 1}: ${e.toString().replaceFirst("Exception: ", "")}"));
     }
   }
 
   DisplayItem _createDisplayItem(TestDetail detail) {
-    final String type =
-    detail.dataTypeOfContent?.toLowerCase() == 'text' ? 'Text' : 'Img';
-    String? content;
-    String identifier;
-    if (type == 'Img') {
-      content = detail.localAssetPath;
-      identifier = content ??
-          'missing_image_${detail.detailId}_${DateTime.now().millisecondsSinceEpoch}';
-      if (content == null) {
-        print(
-            "Warning (ExerciseFlowCubit): Image path is null for detailId ${detail.detailId}. Using placeholder identifier: $identifier");
-      }
-    } else {
-      content = detail.textContent;
-      identifier = content ??
-          'missing_text_${detail.detailId}_${DateTime.now().millisecondsSinceEpoch}';
-      if (content == null || content.trim().isEmpty) {
-        print(
-            "Warning (ExerciseFlowCubit): Text content is null or empty for detailId ${detail.detailId}. Using placeholder identifier: $identifier");
-        content = "[نص غير متوفر]";
-      }
-    }
-    return DisplayItem(type: type, content: content, identifier: identifier);
-  }
+    final int originalApiId = detail.detailId ?? detail.id ?? 0;
+    // ignore: invalid_null_aware_operator
+    final String type = detail.dataTypeOfContent?.toLowerCase() == 'text' ? 'Text' : 'Img';
+    String? content = (type == 'Img') ? detail.localAssetPath : detail.textContent;
 
-  Future<String?> _loadRandomObjectDistractor(String folderPath) async {
-    String? randomPath;
-    int attempts = 0;
-    const int maxAttempts = 5;
-    while (attempts < maxAttempts) {
-      try {
-        randomPath = await getRandomAssetPathFromFolder(folderPath);
-      } catch (e, s) {
-        print("Error in getRandomAssetPathFromFolder: $e\n$s");
-        return null;
-      }
-      print("Distractor load attempt ${attempts + 1}: Got path '$randomPath' from folder '$folderPath'");
-      if (randomPath != null &&
-          randomPath.isNotEmpty &&
-          randomPath.contains('/') &&
-          randomPath.contains('.')) {
-        return randomPath;
-      } else if (randomPath != null) {
-        print(
-            "Warning: getRandomAssetPathFromFolder returned potentially invalid path: '$randomPath'");
-      }
-      attempts++;
-      if (attempts < maxAttempts) {
-        await Future.delayed(Duration(milliseconds: 150 * attempts));
-      }
+    String identifier;
+    String nonNullContent;
+
+    if (content == null || (type == 'Text' && content.trim().isEmpty) || (type == 'Img' && content.trim().isEmpty)) {
+        nonNullContent = (type == 'Img') ? "assets/images/placeholder.png" : "[نص غير متوفر]";
+        identifier = "missing_content_${type.toLowerCase()}_${originalApiId}_${DateTime.now().millisecondsSinceEpoch}";
+        debugPrint("Warning: Content for detail ID $originalApiId ($type) is missing or empty. Using placeholder/fallback: '$nonNullContent'");
+    } else {
+        nonNullContent = content;
+        identifier = content;
     }
-    print(
-        "Error: Failed to get a valid random asset path from '$folderPath' after $maxAttempts attempts.");
-    return null;
+
+    return DisplayItem(
+        type: type,
+        content: nonNullContent,
+        identifier: identifier,
+        originalDetailIdForApi: originalApiId
+    );
   }
 
   void submitAnswer(String selectedIdentifier) {
     final currentState = state;
-    print(
-        "submitAnswer called with identifier: '$selectedIdentifier'. Current state type: ${currentState.runtimeType}");
     ExerciseStepLoaded? loadedState;
+
     if (currentState is ExerciseStepLoaded) {
       loadedState = currentState;
     } else if (currentState is ExerciseCorrectAnswer) {
+      debugPrint("Cubit: submitAnswer called while in ExerciseCorrectAnswer state. Ignoring.");
+      return;
+    } else if (currentState is ExerciseIncorrectAnswer) {
       loadedState = currentState.previousState;
-    } else if (currentState is ExerciseIncorrectAnswer){
-      loadedState = currentState.previousState;
-    }
-    else {
-      print(
-          "Cubit: submitAnswer called in an invalid state (${currentState.runtimeType}). Ignoring.");
+    } else {
+      debugPrint("Cubit: submitAnswer called in an unexpected state (${currentState.runtimeType}). Ignoring.");
       return;
     }
 
     final String correctAnswerId = loadedState.correctAnswerIdentifier;
-    print(
-        "Cubit: Step ${loadedState.currentStepIndex} - Selected ID: '$selectedIdentifier', Correct ID: '$correctAnswerId'");
+    final bool isCorrect = (selectedIdentifier == correctAnswerId);
 
-    bool isCorrect = (selectedIdentifier == correctAnswerId);
-
-    if (isCorrect) {
-      print("Cubit: Correct answer!");
-      emit(ExerciseCorrectAnswer(loadedState));
-    } else {
-      print("Cubit: Incorrect answer.");
-      emit(ExerciseIncorrectAnswer(loadedState));
-    }
+    emit(isCorrect ? ExerciseCorrectAnswer(loadedState) : ExerciseIncorrectAnswer(loadedState));
   }
 
   void retryCurrentStep() {
     if (state is ExerciseIncorrectAnswer) {
-      final incorrectState = state as ExerciseIncorrectAnswer;
-      print("Cubit: Retrying step ${incorrectState.previousState.currentStepIndex}");
-      emit(incorrectState.previousState);
-    } else {
-      print(
-          "Cubit: retryCurrentStep called in invalid state (${state.runtimeType})");
+      emit((state as ExerciseIncorrectAnswer).previousState);
     }
   }
 
   void proceedToNextExercise() {
     if (state is ExerciseCorrectAnswer) {
-      final correctState = state as ExerciseCorrectAnswer;
-      final nextStepIndex = correctState.previousState.currentStepIndex + 1;
-      print(
-          "Proceeding from CorrectAnswer state. Current step: ${correctState.previousState.currentStepIndex}, Next step: $nextStepIndex");
-      _prepareExerciseStep(nextStepIndex);
-    } else {
-      print(
-          "Warning: proceedToNextExercise called in unexpected state: ${state.runtimeType}");
+      final nextStep = (state as ExerciseCorrectAnswer).previousState.currentStepIndex + 1;
+      _prepareExerciseStep(nextStep);
     }
   }
 
-  Future<void> _completeSession(int? sessionId) {
+  Future<void> _completeSession(int? sessionId) async {
     if (sessionId == null) {
-      if (state is! ExerciseFlowFinished) emit(ExerciseFlowFinished());
-      return Future.value(); // Added to return Future
+      debugPrint("Cubit: _completeSession called with null sessionId. Emitting ExerciseFlowFinished.");
+      if (mounted && state is! ExerciseFlowFinished) emit(const ExerciseFlowFinished());
+      return;
     }
-    print("Cubit: Attempting to mark session (monthly test) $sessionId as complete...");
-    if (state is! ExerciseFlowUpdatingSession) emit(ExerciseFlowUpdatingSession());
 
-    return apiService.markSessionDone(sessionId).then((result) async { // Added async here
-      result.fold(
-            (failure) {
-          emit(ExerciseFlowError("فشل تحديث حالة الاختبار الشهري: ${failure.message}"));
-          Future.delayed(const Duration(seconds: 3), () {
-            if (state is ExerciseFlowError || state is ExerciseFlowUpdatingSession) {
-              emit(ExerciseFlowFinished());
-            }
-          });
-        },
-            (success) async {
-          print("Cubit: Successfully marked session (monthly test) $sessionId as done.");
-          await NotificationManager.removeNotificationByType(notif_model.NotificationType.monthlyTestAvailable);
-          await NotificationManager.setMonthlyTestNotificationSent(false);
-          debugPrint("ExerciseFlowCubit: Monthly test notification removed and flag reset.");
-          if (state is! ExerciseFlowError && state is! ExerciseFlowFinished) {
-            emit(ExerciseFlowFinished());
+    debugPrint("Cubit: Attempting to complete session ID: $sessionId");
+    if (mounted && state is! ExerciseFlowUpdatingSession) emit(const ExerciseFlowUpdatingSession());
+
+    final Either<Failure, bool> result = await apiService.markSessionDone(sessionId);
+    result.fold(
+      (failure) {
+        debugPrint("Cubit Error: Failed to mark session $sessionId done: ${failure.message}");
+        if (mounted) emit(ExerciseFlowError("فشل تحديث حالة الاختبار: ${failure.message}"));
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted && (state is ExerciseFlowError || state is ExerciseFlowUpdatingSession) && state is! ExerciseFlowFinished) {
+            emit(const ExerciseFlowFinished());
           }
-        },
-      );
-    });
+        });
+      },
+      (success) async {
+        debugPrint("Cubit: Successfully marked session $sessionId done. Success: $success");
+        await NotificationManager.deactivateNotificationsByType(notif_model.NotificationType.monthlyTestAvailable);
+        await NotificationManager.setMonthlyTestNotificationSent(false);
+        debugPrint("Cubit: Monthly test notification flag reset.");
+        if (mounted && state is! ExerciseFlowError && state is! ExerciseFlowFinished) {
+           emit(const ExerciseFlowFinished());
+        }
+      },
+    );
   }
-
 
   @override
   Future<void> close() {
-    print("onClose -- ExerciseFlowCubit");
+    debugPrint("onClose -- ExerciseFlowCubit closing.");
     return super.close();
   }
+
+  bool get mounted => !isClosed;
 }

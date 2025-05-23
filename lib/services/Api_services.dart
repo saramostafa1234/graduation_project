@@ -444,71 +444,109 @@ class ApiService {
     }
   }
 
-  static Future<Session?> getNextPendingSession(String token) async {
-    final url = Uri.parse('$baseUrl/SessionController/next-pending');
-    print('[ApiService.getNextPendingSession] Calling: GET $url');
-    try {
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json'
-        },
-      ).timeout(const Duration(seconds: 20));
-      print(
-          '[ApiService.getNextPendingSession] Status Code: ${response.statusCode}');
-      print(
-          '[ApiService.getNextPendingSession] Response Body: ${response.body}');
-      if (response.statusCode == 200) {
-        try {
-          final decodedBody = utf8.decode(response.bodyBytes);
-          final data = jsonDecode(decodedBody);
-          if (data != null && data is Map<String, dynamic>) {
-            print(
-                '[ApiService.getNextPendingSession] Successfully fetched session data.');
+static Future<Session?> getNextPendingSession(String token) async {
+  final url = Uri.parse('$baseUrl/SessionController/next-pending');
+  print('[ApiService.getNextPendingSession] Calling: GET $url');
+  try {
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json'
+      },
+    ).timeout(const Duration(seconds: 20));
+    print('[ApiService.getNextPendingSession] Status Code: ${response.statusCode}');
+    print('[ApiService.getNextPendingSession] Response Body: ${response.body}'); // مهم جداً
+
+    if (response.statusCode == 200) {
+      try {
+        final decodedBody = utf8.decode(response.bodyBytes);
+        final data = jsonDecode(decodedBody);
+
+        // --- بداية التحليل المهم ---
+        if (data != null && data is Map<String, dynamic>) {
+          // تحقق إذا كانت هذه رسالة خاصة بالاختبار بدلاً من جلسة كاملة
+          // هذا هو الافتراض بناءً على صور استجابتك
+          if (data.containsKey('message') &&
+              !data.containsKey('details') && // جلسة كاملة عادة ما تحتوي 'details'
+              !data.containsKey('newDetail')) { // جلسة كاملة عادة ما تحتوي 'newDetail'
+
+            String message = data['message'] as String? ?? '';
+            print('[ApiService.getNextPendingSession] Detected a special message: $message');
+
+            // --- هنا يجب أن تقرر كيف ستتعامل مع هذه الرسالة ---
+            // الخيار 1: إنشاء كائن Session مبسط يحمل هذه الرسالة في attributes
+            // هذا يتطلب أن يكون Session.fromJson قادرًا على التعامل مع هذا.
+            Map<String, dynamic> sessionLikeMessage = {
+              "id": data['sessionId'] as int? ?? 0, // أو قيمة مناسبة إذا لم يكن sessionId موجودًا
+              "title": "رسالة نظام", // أو استخرج العنوان إذا كان موجودًا
+              "description": message,
+              "goal": "",
+              "type": "SYSTEM_MESSAGE", // نوع خاص للإشارة إلى أنها رسالة
+              "groupId": 0,
+              "detailsCount": 0,
+              "attributes": { // هنا نضع الرسائل المستخرجة
+                if (message.toLowerCase().contains("اختبار الشهر")) "monthly_test_message": message,
+                if (message.toLowerCase().contains("اختبار ال 3 شهور")) "three_month_test_message": message,
+              },
+              "details": {"\$values": []}, // قيم فارغة للحقول المتوقعة
+              "newDetail": {"\$values": []} // قيم فارغة للحقول المتوقعة
+            };
+            return Session.fromJson(sessionLikeMessage);
+
+            // الخيار 2: إرجاع null، وجعل HomeScreen يعالج الرسالة بطريقة أخرى
+            // (قد يكون هذا معقدًا لأنك ستفقد الرسالة).
+            // return null;
+
+            // الخيار 3 (الأفضل إذا أمكن): تعديل الـ API ليكون له endpoints مختلفة.
+          }
+          // إذا لم تكن رسالة خاصة، افترض أنها بيانات جلسة كاملة
+          else if (data.containsKey('details')) { // تحقق من وجود حقل أساسي للجلسة
+            print('[ApiService.getNextPendingSession] Successfully fetched full session data.');
             return Session.fromJson(data);
-          } else if (data == null || (data is List && data.isEmpty)) {
-            print(
-                '[ApiService.getNextPendingSession] Received null or empty list, considering as no pending session.');
-            return null;
-          } else {
-            print(
-                '[ApiService.getNextPendingSession] Unexpected data format received: ${data.runtimeType}');
+          }
+          // إذا لم تكن أيًا مما سبق، فهي بنية غير متوقعة
+          else {
+            print('[ApiService.getNextPendingSession] Unknown data structure received, but it is a Map.');
             return null;
           }
-        } catch (e) {
-          print('[ApiService.getNextPendingSession] JSON Parsing Error: $e');
+
+        } else if (data == null || (data is List && data.isEmpty)) {
+          print('[ApiService.getNextPendingSession] Received null or empty list, considering as no pending session.');
+          return null;
+        } else {
+          print('[ApiService.getNextPendingSession] Unexpected data format received: ${data.runtimeType}');
           return null;
         }
-      } else if (response.statusCode == 404) {
-        print(
-            '[ApiService.getNextPendingSession] No pending sessions found (404).');
+      } catch (e) {
+        print('[ApiService.getNextPendingSession] JSON Parsing Error: $e. Body was: ${response.body}');
         return null;
-      } else if (response.statusCode == 401) {
-        print('[ApiService.getNextPendingSession] Unauthorized (401).');
-        throw Exception('Unauthorized');
-      } else {
-        print(
-            '[ApiService.getNextPendingSession] Failed with status: ${response.statusCode}');
-        throw Exception(
-            'Failed to load next session (Status: ${response.statusCode})');
       }
-    } on TimeoutException catch (e) {
-      print('[ApiService.getNextPendingSession] Timeout: $e');
-      throw Exception('Request timed out');
-    } on SocketException catch (e) {
-      print('[ApiService.getNextPendingSession] Network Error: $e');
-      throw Exception('Network error');
-    } on http.ClientException catch (e) {
-      print('[ApiService.getNextPendingSession] Client Error: $e');
-      throw Exception('Client error');
-    } catch (e) {
-      print('[ApiService.getNextPendingSession] Unexpected Error: $e');
-      throw Exception('Unexpected error');
+    } else if (response.statusCode == 404) {
+      print('[ApiService.getNextPendingSession] No pending sessions found (404).');
+      return null;
+    } else if (response.statusCode == 401) {
+      print('[ApiService.getNextPendingSession] Unauthorized (401).');
+      throw Exception('Unauthorized'); // سيتم التقاطها في HomeScreen
+    } else {
+      print('[ApiService.getNextPendingSession] Failed with status: ${response.statusCode}');
+      throw Exception('Failed to load next session (Status: ${response.statusCode})'); // سيتم التقاطها في HomeScreen
     }
+  } on TimeoutException catch (e) {
+    print('[ApiService.getNextPendingSession] Timeout: $e');
+    throw Exception('Request timed out'); // سيتم التقاطها في HomeScreen
+  } on SocketException catch (e) {
+    print('[ApiService.getNextPendingSession] Network Error: $e');
+    throw Exception('Network error'); // سيتم التقاطها في HomeScreen
+  } on http.ClientException catch (e) {
+    print('[ApiService.getNextPendingSession] Client Error: $e');
+    throw Exception('Client error'); // سيتم التقاطها في HomeScreen
+  } catch (e) {
+    print('[ApiService.getNextPendingSession] Unexpected Error: $e');
+    throw Exception('Unexpected error'); // سيتم التقاطها في HomeScreen
   }
-
-  // --- classifyAnswerWithModel --- (Keep As Is)
+}
+ // --- classifyAnswerWithModel --- (Keep As Is)
   static Future<String?> classifyAnswerWithModel(String rawText) async {
     // ... (existing code) ...
         const String modelPredictEndpoint =
@@ -1832,6 +1870,47 @@ class ApiService {
     } catch (e) {
       debugPrint(
           "ApiService.markTestGroupDone (GroupID: $groupId): Exception: $e");
+      return false;
+    }
+  }
+  static Future<bool> addIncorrectAnswerComment(String token, int sessionId) async {
+    // تأكدي من أن هذا هو الـ Endpoint والـ baseUrl الصحيحين
+    final String endpointUrl = '$baseUrl/Reports/add-comment'; // بناءً على الصورة، المسار هو /api/Reports/add-comment
+                                                              // إذا كان baseUrl هو http://aspiq.runasp.net/api
+                                                              // فالرابط سيكون صحيحًا
+    debugPrint("[ApiService.addIncorrectAnswerComment] Calling: POST $endpointUrl for Detail ID: $sessionId");
+
+    try {
+      // تأكدي من أن المفتاح الذي يتوقعه الـ API هو "session_ID" أو "sessionId" أو "detailId"
+      final Map<String, dynamic> payload = {
+        "session_ID": sessionId // افترضت أن الـ API يتوقع ID التفصيل هنا
+      };
+      final String jsonPayload = jsonEncode(payload);
+
+      final response = await http.post(
+        Uri.parse(endpointUrl),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonPayload,
+      ).timeout(const Duration(seconds: 15)); // مهلة معقولة
+
+      debugPrint("[ApiService.addIncorrectAnswerComment] Status: ${response.statusCode}, Body: ${response.body}");
+
+      // عادةً ما يكون 200 OK أو 201 Created أو 204 No Content علامات نجاح
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        debugPrint("[ApiService.addIncorrectAnswerComment] Comment added successfully for Detail ID: $sessionId");
+        return true;
+      } else {
+        debugPrint("[ApiService.addIncorrectAnswerComment] Failed to add comment for Detail ID: $sessionId. Status: ${response.statusCode}");
+        return false;
+      }
+    } on TimeoutException catch (e) {
+      debugPrint("[ApiService.addIncorrectAnswerComment] Timeout error for Detail ID $sessionId: $e");
+      return false;
+    } catch (e) {
+      debugPrint("[ApiService.addIncorrectAnswerComment] General error for Detail ID $sessionId: $e");
       return false;
     }
   }
