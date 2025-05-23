@@ -1,22 +1,22 @@
-// lib/cubit/exercise_flow_state.dart
+// lib/monthly_test/exercise_flow_state.dart
 import 'package:equatable/equatable.dart';
 
 // --- Helper class to represent an item to be displayed ---
 class DisplayItem extends Equatable {
   final String type; // 'Img' or 'Text'
   final String? content; // Asset path for Img, text content for Text
-  // Unique identifier for this item, used for selection in choice steps
-  // For Img: Asset Path. For Text: The text content itself.
-  final String identifier;
+  final String identifier; // Unique identifier for selection
+  final int originalDetailIdForApi; // The original ID from the backend TestDetail
 
   const DisplayItem({
     required this.type,
     required this.content,
     required this.identifier,
+    required this.originalDetailIdForApi, // Required for API calls if needed
   });
 
   @override
-  List<Object?> get props => [type, content, identifier];
+  List<Object?> get props => [type, content, identifier, originalDetailIdForApi];
 }
 
 // --- Enum for how the step should be displayed ---
@@ -33,38 +33,39 @@ abstract class ExerciseFlowState extends Equatable {
 }
 
 // --- Basic States ---
-class ExerciseFlowInitial extends ExerciseFlowState {}
-class ExerciseFlowLoading extends ExerciseFlowState {}
-
-class ExerciseFlowLoadingDistractor
-    extends ExerciseFlowState {} // Specific loading for random asset
-
+class ExerciseFlowInitial extends ExerciseFlowState {
+  const ExerciseFlowInitial();
+}
+class ExerciseFlowLoading extends ExerciseFlowState {
+  const ExerciseFlowLoading();
+}
+class ExerciseFlowLoadingDistractor extends ExerciseFlowState {
+  const ExerciseFlowLoadingDistractor();
+}
 class ExerciseFlowError extends ExerciseFlowState {
   final String message;
   const ExerciseFlowError(this.message);
   @override
   List<Object> get props => [message];
 }
-class ExerciseFlowFinished extends ExerciseFlowState {}
-class ExerciseFlowUpdatingSession extends ExerciseFlowState {}
+class ExerciseFlowFinished extends ExerciseFlowState {
+  const ExerciseFlowFinished();
+}
+class ExerciseFlowUpdatingSession extends ExerciseFlowState {
+  const ExerciseFlowUpdatingSession();
+}
 
 // --- State for displaying a step ---
 class ExerciseStepLoaded extends ExerciseFlowState {
-  final int currentStepIndex; // 0, 1, 2, 3
+  final int currentStepIndex;
   final StepDisplayType displayType;
-  final String? question;
+  final String? question; // نص السؤال
   final int? mainSessionId;
 
-  // Data for the items to display
   final DisplayItem item1;
-  final DisplayItem? item2; // Only used for twoItemsChoice
+  final DisplayItem? item2;
 
-  // Options for singleItemWithOptions
   final List<String> answerOptions;
-
-  // The identifier of the correct answer
-  // - For singleItemWithOptions: The correct text option string.
-  // - For twoItemsChoice: The 'identifier' of the correct DisplayItem.
   final String correctAnswerIdentifier;
 
   const ExerciseStepLoaded({
@@ -73,22 +74,16 @@ class ExerciseStepLoaded extends ExerciseFlowState {
     required this.question,
     required this.mainSessionId,
     required this.item1,
-    this.item2, // Nullable
+    this.item2,
     required this.answerOptions,
     required this.correctAnswerIdentifier,
   });
 
   @override
   List<Object?> get props => [
-    currentStepIndex,
-        displayType,
-        question,
-    mainSessionId,
-        item1,
-        item2,
-        answerOptions,
-        correctAnswerIdentifier,
-      ];
+    currentStepIndex, displayType, question, mainSessionId,
+    item1, item2, answerOptions, correctAnswerIdentifier,
+  ];
 }
 
 // --- Answer States ---
