@@ -7,10 +7,8 @@ import 'child_report_model.dart'; // Adjusted path
 import 'progress_model.dart'; // Adjusted path
 
 class PdfGeneratorService {
-  Future<File> generateReportPdf(
-    ChildReportGroup reportGroup,
-    ProgressResponse? progressData,
-  ) async {
+  Future<File> generateReportPdf(ChildReportGroup reportGroup,
+      ProgressResponse? progressData,) async {
     final pdf = pw.Document();
 
     final String dynamicPdfTitle = 'تقرير شعور ${reportGroup.groupName}';
@@ -36,33 +34,28 @@ class PdfGeneratorService {
         progressData != null ? '${progressData.progress}%' : 'غير متوفر';
 
     pdf.addPage(
-      pw.Page(
+      pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
         theme: pw.ThemeData.withFont(
           base: arabicFont,
         ),
-        build: (pw.Context context) {
-          final baseTextStyle =
-              pw.TextStyle(font: arabicFont, color: defaultTextColor);
-          final boldTextStyle = pw.TextStyle(
-              font: arabicFont,
-              fontWeight: pw.FontWeight.bold,
-              color: defaultTextColor);
-
-          return pw.Column(
+        build: (pw.Context context) => [
+          pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Container( // حاوية تأخذ العرض الكامل
+              pw.Container(
                 width: double.infinity,
-                padding: const pw.EdgeInsets.symmetric(vertical: 8.0), // إضافة padding مشابه للهيدر
+                padding: const pw.EdgeInsets.symmetric(vertical: 8.0),
                 child: pw.Text(
                   dynamicPdfTitle,
-                  style: boldTextStyle.copyWith(
+                  style: pw.TextStyle(
+                    font: arabicFont,
+                    fontWeight: pw.FontWeight.bold,
                     fontSize: 24,
                     color: primaryAppColor,
                   ),
-                  textAlign: pw.TextAlign.center, // محاذاة النص إلى المنتصف
+                  textAlign: pw.TextAlign.center,
                 ),
               ),
               pw.SizedBox(height: 20),
@@ -94,8 +87,8 @@ class PdfGeneratorService {
                 ],
               ),
               pw.SizedBox(height: 24),
-              _buildPdfSectionTitle(
-                  'المشاعر التي تم التدريب عليها:', arabicFont, primaryAppColor),
+              _buildPdfSectionTitle('المشاعر التي تم التدريب عليها:',
+                  arabicFont, primaryAppColor),
               _buildPdfTrainedEmotions(
                 reportGroup.good.items,
                 reportGroup.notGood.items,
@@ -129,8 +122,8 @@ class PdfGeneratorService {
                 cardBorderColor,
               ),
             ],
-          );
-        },
+          ),
+        ],
       ),
     );
 
@@ -189,16 +182,14 @@ class PdfGeneratorService {
     );
   }
 
-  pw.Widget _buildPdfTrainedEmotions(
-    List<ReportItem> goodItems,
-    List<ReportItem> notGoodItems,
-    pw.Font font,
-    PdfColor goodIconColor,
-    PdfColor notGoodIconColor,
-    PdfColor textColor,
-    PdfColor backgroundColor,
-    PdfColor borderColor,
-  ) {
+  pw.Widget _buildPdfTrainedEmotions(List<ReportItem> goodItems,
+      List<ReportItem> notGoodItems,
+      pw.Font font,
+      PdfColor goodIconColor,
+      PdfColor notGoodIconColor,
+      PdfColor textColor,
+      PdfColor backgroundColor,
+      PdfColor borderColor,) {
     final List<pw.Widget> emotionWidgets = [];
 
     for (var item in goodItems) {
@@ -259,15 +250,13 @@ class PdfGeneratorService {
     );
   }
 
-  pw.Widget _buildPdfPerformanceSummary(
-    List<ReportItem> goodItems,
-    List<ReportItem> notGoodItems,
-    pw.Font font,
-    PdfColor bulletColor,
-    PdfColor textColor,
-    PdfColor backgroundColor,
-    PdfColor borderColor,
-  ) {
+  pw.Widget _buildPdfPerformanceSummary(List<ReportItem> goodItems,
+      List<ReportItem> notGoodItems,
+      pw.Font font,
+      PdfColor bulletColor,
+      PdfColor textColor,
+      PdfColor backgroundColor,
+      PdfColor borderColor,) {
     final List<pw.Widget> summaryWidgets = [];
 
     for (var item in goodItems) {
